@@ -1,0 +1,67 @@
+# À appliquer dans ArgoCD (une fois), les AppProjects d'abord :
+#   kubectl apply -f appprojects.yaml -f applicationset.yaml
+#
+# Une Application par (environnement x projet), dans l'AppProject du projet :
+#   - chart  : gitops-ba-formation/ de ce dépôt
+#   - values : helm.yaml à la racine du dépôt du projet
+# Ajouter un environnement = une ligne ci-dessous.
+# Ajouter un projet = une ligne ci-dessous + son AppProject dans appprojects.yaml.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: formation-ba
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - matrix:
+        generators:
+          # Environnements déclarés. cluster = nom du cluster dans ArgoCD
+          # ("in-cluster" = le cluster où tourne ArgoCD)
+          - list:
+              elements:
+                - env: dev
+                  cluster: in-cluster
+                # - env: qualif
+                #   cluster: qualif-cluster
+                # - env: prod
+                #   cluster: prod-cluster
+          # Projets = dépôts GitHub contenant un helm.yaml à leur racine
+          - list:
+              elements:
+                - project: formation-ba-assurance-iard
+                - project: formation-ba-compte-unique
+                - project: formation-ba-gestion-financiere
+                - project: formation-ba-quali-formation
+                - project: formation-ba-scpi-invest
+  template:
+    metadata:
+      name: '{{ .env }}-{{ .project }}'
+    spec:
+      project: '{{ .project }}'
+      sources:
+        - repoURL: https://github.com/mchekini-check-consulting/formation-ba-gitops.git
+          targetRevision: main
+          path: gitops-ba-formation
+          helm:
+            releaseName: '{{ .project }}'
+            valueFiles:
+              - $app/helm.yaml
+            parameters:
+              - name: env
+                value: '{{ .env }}'
+              - name: project
+                value: '{{ .project }}'
+        - repoURL: 'https://github.com/mchekini-check-consulting/{{ .project }}.git'
+          targetRevision: main
+          ref: app
+      destination:
+        name: '{{ .cluster }}'
+        namespace: '{{ .env }}-{{ .project }}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true

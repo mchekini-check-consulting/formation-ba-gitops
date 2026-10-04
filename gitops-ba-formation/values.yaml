@@ -1,0 +1,13 @@
+# Injectés par l'ApplicationSet : ne pas remplir
+env: ""
+project: ""
+
+# Host par défaut des Ingress : <env>-<project>.<domain>
+# (enregistrement DNS créé par external-dns vers le NLB Traefik)
+domain: check-consulting.net
+ingressClassName: traefik
+
+# Fourni par le helm.yaml du dépôt projet.
+# Valeurs littérales uniquement (pas de {{ }}). replicas, tag et envList[].value
+# acceptent une valeur unique ou une map par environnement : { dev: 1, qualif: 2 }
+applications: []

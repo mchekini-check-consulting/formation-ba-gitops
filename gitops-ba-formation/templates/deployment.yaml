@@ -1,0 +1,35 @@
+{{- $env := required "env manquant (injecté par l'ApplicationSet)" .Values.env }}
+{{- range $app := .Values.applications }}
+{{- $ctx := dict "app" $app "root" $ }}
+{{- $tag := include "gba.byEnv" (dict "value" $app.tag "env" $env) }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $app.name }}
+  labels:
+    {{- include "gba.labels" $ctx | nindent 4 }}
+spec:
+  replicas: {{ include "gba.byEnv" (dict "value" $app.replicas "env" $env) | default 1 }}
+  selector:
+    matchLabels:
+      {{- include "gba.selectorLabels" $ctx | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "gba.labels" $ctx | nindent 8 }}
+    spec:
+      containers:
+        - name: {{ $app.name }}
+          image: "{{ $app.image }}:{{ required (printf "tag manquant pour %s en %s" $app.name $env) $tag }}"
+          ports:
+            - name: http
+              containerPort: {{ $app.containerPort | default 8080 }}
+          {{- with $app.envList }}
+          env:
+            {{- range . }}
+            - name: {{ .key }}
+              value: {{ include "gba.byEnv" (dict "value" .value "env" $env) | quote }}
+            {{- end }}
+          {{- end }}
+{{- end }}
