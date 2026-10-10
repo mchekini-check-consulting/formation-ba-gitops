@@ -26,3 +26,8 @@ tools:
   sonarqube:
     repo: https://SonarSource.github.io/helm-chart-sonarqube
     chart: sonarqube
+
+  # Certificats TLS (Let's Encrypt, DNS-01 Route53)
+  cert-manager:
+    repo: https://charts.jetstack.io
+    chart: cert-manager

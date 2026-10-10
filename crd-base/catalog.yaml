@@ -19,3 +19,9 @@ tools:
   cloudnative-pg:
     repo: https://cloudnative-pg.github.io/charts
     chart: cloudnative-pg
+
+  # Certificats TLS (Let's Encrypt, DNS-01 Route53)
+  cert-manager:
+    repo: https://charts.jetstack.io
+    chart: cert-manager
+    set: crds.enabled=true   # les CRDs du chart cert-manager sont des templates

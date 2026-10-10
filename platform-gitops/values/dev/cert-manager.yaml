@@ -1,0 +1,44 @@
+# Objets cert-manager de l'environnement (liste complète, non fusionnée avec common).
+# sync-wave "1" : appliqués après le déploiement et le webhook de cert-manager
+# (wave 0 de l'Application), qui valide ces ressources.
+extraObjects:
+  # Let's Encrypt, validation DNS-01 dans la zone check-consulting.net.
+  # Compte ACME sans email (facultatif ; Let's Encrypt n'envoie plus d'alertes
+  # d'expiration) : cert-manager renouvelle 30 jours avant l'expiration.
+  # Staging d'abord (certificat non reconnu par les navigateurs, sans limite
+  # de quota), puis https://acme-v02.api.letsencrypt.org/directory.
+  - |
+    apiVersion: cert-manager.io/v1
+    kind: ClusterIssuer
+    metadata:
+      name: letsencrypt
+      annotations:
+        argocd.argoproj.io/sync-wave: "1"
+    spec:
+      acme:
+        server: https://acme-staging-v02.api.letsencrypt.org/directory
+        privateKeySecretRef:
+          name: letsencrypt-account
+        solvers:
+          - dns01:
+              route53:
+                region: eu-west-3
+                hostedZoneID: Z02992983P6JBHBJ5UT37   # zone publique check-consulting.net
+
+  # Wildcard servi par Traefik (tlsStore default, values/common/traefik.yaml).
+  # Le Secret doit être dans le namespace de Traefik.
+  - |
+    apiVersion: cert-manager.io/v1
+    kind: Certificate
+    metadata:
+      name: wildcard-check-consulting
+      namespace: traefik
+      annotations:
+        argocd.argoproj.io/sync-wave: "1"
+    spec:
+      secretName: wildcard-check-consulting-tls
+      dnsNames:
+        - "*.check-consulting.net"
+      issuerRef:
+        kind: ClusterIssuer
+        name: letsencrypt

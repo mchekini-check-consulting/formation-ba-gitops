@@ -1,0 +1,10 @@
+# Généré par scripts/sync-crds.sh cert-manager v1.21.2 - NE PAS MODIFIER
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - certificaterequests.cert-manager.io.yml
+  - certificates.cert-manager.io.yml
+  - challenges.acme.cert-manager.io.yml
+  - clusterissuers.cert-manager.io.yml
+  - issuers.cert-manager.io.yml
+  - orders.acme.cert-manager.io.yml

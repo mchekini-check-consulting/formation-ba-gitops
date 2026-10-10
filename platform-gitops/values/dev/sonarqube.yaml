@@ -1,5 +1,5 @@
 # Ingress servi par Traefik ; external-dns crée l'ALIAS sonarqube-dev.check-consulting.net -> NLB.
-# HTTP seulement (pas de certificat valide) : identifiants en clair, à remplacer par du TLS.
+# HTTPS : wildcard *.check-consulting.net, certificat par défaut de Traefik (cert-manager).
 # URL à mettre dans le secret SONAR_HOST_URL de la CI.
 ingress:
   enabled: true
