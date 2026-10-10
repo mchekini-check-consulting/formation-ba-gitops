@@ -1,0 +1,6 @@
+# Généré par scripts/sync-crds.sh external-dns 1.23.0 - NE PAS MODIFIER
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - dnsendpoints.externaldns.k8s.io.yml
+  - dnsrecords.externaldns.k8s.io.yml

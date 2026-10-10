@@ -1,0 +1,13 @@
+# Base PostgreSQL de SonarQube : chart cnpg-cluster (ressource Cluster CloudNativePG).
+# L'opérateur crée :
+#   - le Service sonarqube-db-rw (lecture/écriture)
+#   - le Secret sonarqube-db-app (username, password, jdbc-uri, ...) lu par SonarQube
+fullnameOverride: sonarqube-db
+
+cluster:
+  initdb:
+    database: sonarqube
+    owner: sonarqube
+  enableSuperuserAccess: false
+  storage:
+    size: 5Gi        # StorageClass par défaut du cluster (gp3, addon EBS CSI)

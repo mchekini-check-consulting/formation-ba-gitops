@@ -1,0 +1,19 @@
+# Tests unitaires + couverture d'un composant : "make test-unit", défini dans le Makefile
+# du composant. Le rapport de couverture reste dans le dossier du composant, où l'action
+# sonarqube (étape suivante du même job) le lit via sonar-project.properties.
+name: unit-test
+description: Tests unitaires et couverture d'un composant
+
+inputs:
+  component:
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - uses: mchekini-check-consulting/formation-ba-gitops/ci-template/setup@main
+      with:
+        component: ${{ inputs.component }}
+    - shell: bash
+      working-directory: ${{ inputs.component }}
+      run: make test-unit

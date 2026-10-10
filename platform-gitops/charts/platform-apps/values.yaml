@@ -1,0 +1,76 @@
+# Valeurs communes à tous les environnements.
+# Fournis par clusters/<env>/platform.yaml : cluster, gitops, crdBase (repo),
+# chartBase, tools.<outil>.version.
+
+argocdNamespace: argocd
+project: default
+destinationServer: https://kubernetes.default.svc
+
+# Fusionné avec crdBase de platform.yaml (repoURL, targetRevision, path)
+crdBase:
+  syncWave: "-10"   # CRDs avant les charts (wave 0)
+
+syncPolicy:
+  automated:
+    prune: true
+    selfHeal: true
+  syncOptions:
+    - CreateNamespace=true
+    - ServerSideApply=true
+
+# Outils de la plateforme.
+#   - CRDs : toujours depuis crd-base/<outil>/<version> (Application crds-<outil>)
+#   - Chart : depuis chart-base/<outil>/<version> (Application <outil>)
+#     + values/common/<outil>.yaml + values/<env>/<outil>.yaml
+#   - finalizer: false : supprimer l'Application ne désinstalle pas l'outil
+#   - chart: <dossier> : chart de chart-base/<dossier>/<version> au lieu de chart-base/<outil>
+#     (ex. cnpg-cluster, réutilisé par chaque outil qui a besoin d'une base)
+#   - crds: false : outil sans CRDs (pas d'Application crds-<outil>)
+tools:
+  # Installé une première fois par bootstrap.sh (helm, crds.install=false), puis
+  # l'Application argocd reprend la même release : ArgoCD se met à jour lui-même.
+  # releaseName / namespace : identiques à bootstrap.sh.
+  argocd:
+    enabled: true
+    version: ""
+    releaseName: argocd
+    namespace: argocd
+    syncWave: "0"
+    finalizer: false
+  traefik:
+    enabled: true
+    version: ""
+    namespace: traefik
+    syncWave: "0"
+  # Crée les enregistrements *.check-consulting.net des Ingress vers le NLB Traefik.
+  # Wave 10 : après Traefik, dont le Service fournit l'adresse du NLB.
+  external-dns:
+    enabled: true
+    version: ""
+    namespace: external-dns
+    syncWave: "10"
+  # Opérateur PostgreSQL de la plateforme : bases des outils (sonarqube-db) et
+  # des applications dev. Wave 0 : opérateur + webhook prêts avant les Cluster.
+  cloudnative-pg:
+    enabled: true
+    version: ""
+    namespace: cnpg-system
+    syncWave: "0"
+  # Base PostgreSQL de SonarQube (ressource Cluster CloudNativePG), dans le
+  # namespace de SonarQube. Wave 20 : après l'opérateur ; finalizer: false :
+  # supprimer l'Application ne supprime pas la base.
+  sonarqube-db:
+    enabled: true
+    version: ""
+    chart: cnpg-cluster
+    namespace: sonarqube
+    syncWave: "20"
+    crds: false
+    finalizer: false
+  # Analyse de code (quality gate des PR). Wave 30 : après sa base.
+  sonarqube:
+    enabled: true
+    version: ""
+    namespace: sonarqube
+    syncWave: "30"
+    crds: false

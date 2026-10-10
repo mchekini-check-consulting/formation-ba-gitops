@@ -1,0 +1,32 @@
+# Écrit le sha des images construites dans helm.yaml (tag.dev uniquement) et pousse
+# le commit avec GITHUB_TOKEN (ne relance pas la CI). qualif/prod : promotion manuelle par PR.
+# Prérequis : checkout + permissions contents: write sur le job.
+name: update-tag
+description: Met à jour tag.dev dans helm.yaml
+
+inputs:
+  components:
+    description: Tableau JSON des dossiers construits
+    required: true
+  sha:
+    description: Sha court à écrire
+    required: true
+  file:
+    default: helm.yaml
+
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        COMPONENTS: ${{ inputs.components }}
+        SHA: ${{ inputs.sha }}
+        FILE: ${{ inputs.file }}
+      run: |
+        for c in $(jq -r '.[]' <<<"$COMPONENTS"); do
+          yq -i "(.applications[] | select(.name == \"$c\")).tag.dev = \"$SHA\"" "$FILE"
+        done
+        git config user.name  "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git commit -am "deploy(dev): $SHA ($(jq -r 'join(", ")' <<<"$COMPONENTS"))"
+        git pull --rebase && git push

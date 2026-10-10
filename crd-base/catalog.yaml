@@ -1,0 +1,21 @@
+# D'où viennent les CRDs de chaque outil (lu par scripts/sync-crds.sh).
+# La version passée au script est la version du chart Helm.
+tools:
+  argocd:
+    repo: https://argoproj.github.io/argo-helm
+    chart: argo-cd
+    set: crds.install=true   # les CRDs du chart argo-cd sont des templates
+
+  traefik:
+    repo: https://traefik.github.io/charts
+    chart: traefik
+
+  external-dns:
+    repo: https://kubernetes-sigs.github.io/external-dns/
+    chart: external-dns
+    set: policy=sync   # valeur obligatoire du chart, sinon helm template échoue
+
+  # Opérateur PostgreSQL : bases des outils de la plateforme et des applications dev
+  cloudnative-pg:
+    repo: https://cloudnative-pg.github.io/charts
+    chart: cloudnative-pg

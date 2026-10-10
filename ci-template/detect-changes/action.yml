@@ -1,0 +1,40 @@
+# Liste les dossiers (backend/, frontend/, ...) contenant un Dockerfile et modifiés
+# depuis le push précédent. Prérequis : checkout avec fetch-depth: 0.
+name: detect-changes
+description: Dossiers à reconstruire + sha court du commit
+
+inputs:
+  base:
+    description: Commit de référence (par défaut le commit avant le push)
+    default: ${{ github.event.before }}
+  all:
+    description: "true = tous les dossiers, sans regarder les changements (PR)"
+    default: "false"
+
+outputs:
+  components:
+    description: Tableau JSON des dossiers à construire
+    value: ${{ steps.detect.outputs.components }}
+  sha:
+    description: Sha court (7 caractères), tag des images et de helm.yaml
+    value: ${{ steps.detect.outputs.sha }}
+
+runs:
+  using: composite
+  steps:
+    - id: detect
+      shell: bash
+      env:
+        BASE: ${{ inputs.base }}
+        ALL_COMPONENTS: ${{ inputs.all }}
+      run: |
+        #  aucune dépendance tierce dans une CI qui a accès à AWS par OIDC  dorny/paths-filter 
+        ALL=$(ls */Dockerfile | xargs -n1 dirname)
+        if [ "$ALL_COMPONENTS" != true ] && git cat-file -e "$BASE" 2>/dev/null; then
+          FILES=$(git diff --name-only "$BASE" HEAD)
+          CHANGED=$(for c in $ALL; do grep -q "^$c/" <<<"$FILES" && echo "$c"; done || true)
+        else
+          CHANGED=$ALL   # premier push ou all=true : tout prendre
+        fi
+        echo "components=$(jq -cn '$ARGS.positional' --args $CHANGED)" >> "$GITHUB_OUTPUT"
+        echo "sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"

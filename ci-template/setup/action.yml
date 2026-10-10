@@ -1,0 +1,66 @@
+# Détecte la stack d'un composant, installe le runtime (avec cache) et les dépendances.
+# Utilisée par lint, unit-test et integration-test. Prérequis : checkout.
+#   package.json -> node (24) | pom.xml -> maven (Java 21) | requirements.txt -> python (3.13)
+
+# En résumé : les trois caches stockent des téléchargements, pas des installations. 
+#Ils évitent le réseau, mais npm ci et pip install font quand même leur travail d'installation.
+# Seul Maven utilise ses fichiers directement depuis le cache.
+name: setup
+description: Runtime + dépendances d'un composant
+
+inputs:
+  component:
+    description: Dossier du composant (backend, frontend, ...)
+    required: true
+
+outputs:
+  stack:
+    description: node | maven | python
+    value: ${{ steps.detect.outputs.stack }}
+
+runs:
+  using: composite
+  steps:
+    - id: detect
+      shell: bash
+      working-directory: ${{ inputs.component }}
+      run: |
+        if   [ -f package.json ];     then STACK=node
+        elif [ -f pom.xml ];          then STACK=maven
+        elif [ -f requirements.txt ]; then STACK=python
+        else echo "::error::stack inconnue dans $PWD"; exit 1
+        fi
+        echo "stack=$STACK" >> "$GITHUB_OUTPUT"
+
+    - if: steps.detect.outputs.stack == 'node'
+      uses: actions/setup-node@v4
+      with:
+        node-version: 24
+        cache: npm
+        cache-dependency-path: ${{ inputs.component }}/package-lock.json
+    - if: steps.detect.outputs.stack == 'maven'
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: 21
+        cache: maven
+    - if: steps.detect.outputs.stack == 'python'
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.13"
+        cache: pip
+        cache-dependency-path: ${{ inputs.component }}/requirements*.txt
+
+    - shell: bash
+      working-directory: ${{ inputs.component }}
+      env:
+        STACK: ${{ steps.detect.outputs.stack }}
+      run: |
+        case "$STACK" in
+          node)   npm ci ;;
+          maven)  chmod +x mvnw ;;   # mvnw télécharge lui-même les dépendances
+          python)   # requirements-dev.txt (outils de lint / couverture) s'il existe
+            if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt
+            else pip install -r requirements.txt
+            fi ;;
+        esac

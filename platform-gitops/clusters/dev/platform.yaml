@@ -1,0 +1,38 @@
+# Source de vérité de l'environnement dev.
+# Lu par bootstrap/bootstrap.sh ET passé en values au chart platform-apps
+# par l'Application racine : une version ne se change QU'ICI.
+cluster:
+  env: dev
+  name: eks-team-eks-business-analyst-formation-dev
+  region: eu-west-3
+
+gitops:
+  repoURL: https://github.com/mchekini-check-consulting/formation-ba-gitops.git
+  targetRevision: main
+  path: platform-gitops
+
+crdBase:
+  repoURL: https://github.com/mchekini-check-consulting/formation-ba-gitops.git
+  targetRevision: main
+  path: crd-base
+
+chartBase:
+  repoURL: https://github.com/mchekini-check-consulting/formation-ba-gitops.git
+  targetRevision: main
+  path: chart-base
+
+# version = version du chart Helm
+#         = dossiers crd-base/<outil>/<version> et chart-base/<outil>/<version>
+tools:
+  argocd:
+    version: 10.9.6
+  traefik:
+    version: 41.6.1
+  external-dns:
+    version: 1.23.0
+  cloudnative-pg:
+    version: 0.29.1
+  sonarqube-db:
+    version: 0.9.0     # chart cnpg-cluster
+  sonarqube:
+    version: 2026.5.1002

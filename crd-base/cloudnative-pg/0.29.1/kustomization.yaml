@@ -1,0 +1,15 @@
+# Généré par scripts/sync-crds.sh cloudnative-pg 0.29.1 - NE PAS MODIFIER
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - backups.postgresql.cnpg.io.yml
+  - clusterimagecatalogs.postgresql.cnpg.io.yml
+  - clusters.postgresql.cnpg.io.yml
+  - databaseroles.postgresql.cnpg.io.yml
+  - databases.postgresql.cnpg.io.yml
+  - failoverquorums.postgresql.cnpg.io.yml
+  - imagecatalogs.postgresql.cnpg.io.yml
+  - poolers.postgresql.cnpg.io.yml
+  - publications.postgresql.cnpg.io.yml
+  - scheduledbackups.postgresql.cnpg.io.yml
+  - subscriptions.postgresql.cnpg.io.yml

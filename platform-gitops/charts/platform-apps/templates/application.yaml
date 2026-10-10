@@ -1,0 +1,42 @@
+{{- /* Une Application par outil activé : chart de chart-base/<chart>/<version>
+       (<chart> = tools.<outil>.chart, par défaut le nom de l'outil)
+       + values de platform-gitops (multi-source).
+       skipCrds : les CRDs viennent de crd-base (crds.yaml). */}}
+{{- $env := required "cluster.env requis" .Values.cluster.env }}
+{{- range $name, $t := .Values.tools }}
+{{- if $t.enabled }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: {{ $name }}
+  namespace: {{ $.Values.argocdNamespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: {{ $t.syncWave | default "0" | quote }}
+  {{- if ne $t.finalizer false }}
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  {{- end }}
+spec:
+  project: {{ $.Values.project }}
+  sources:
+    - repoURL: {{ required "chartBase.repoURL requis" $.Values.chartBase.repoURL }}
+      targetRevision: {{ $.Values.chartBase.targetRevision }}
+      path: {{ $.Values.chartBase.path }}/{{ $t.chart | default $name }}/{{ required (printf "tools.%s.version requis" $name) $t.version }}
+      helm:
+        releaseName: {{ $t.releaseName | default $name }}
+        skipCrds: true
+        ignoreMissingValueFiles: true
+        valueFiles:
+          - $values/{{ $.Values.gitops.path }}/values/common/{{ $name }}.yaml
+          - $values/{{ $.Values.gitops.path }}/values/{{ $env }}/{{ $name }}.yaml
+    - repoURL: {{ required "gitops.repoURL requis" $.Values.gitops.repoURL }}
+      targetRevision: {{ $.Values.gitops.targetRevision }}
+      ref: values
+  destination:
+    server: {{ $.Values.destinationServer }}
+    namespace: {{ $t.namespace | default $name }}
+  syncPolicy:
+    {{- toYaml $.Values.syncPolicy | nindent 4 }}
+{{- end }}
+{{- end }}

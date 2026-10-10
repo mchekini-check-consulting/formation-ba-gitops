@@ -1,0 +1,27 @@
+# Values communes du chart traefik : ingress controller par défaut du cluster.
+deployment:
+  replicas: 2
+
+ingressClass:
+  enabled: true
+  isDefaultClass: true
+  name: traefik
+
+providers:
+  kubernetesCRD:
+    enabled: true
+  kubernetesIngress:
+    enabled: true
+    publishedService:
+      enabled: true   # status.loadBalancer des Ingress = adresse du NLB
+  kubernetesGateway:
+    enabled: false    # CRDs Gateway API non installées (cf. crd-base/catalog.yaml)
+
+# Un seul NLB par cluster, créé par le Service de Traefik (type LoadBalancer par défaut)
+service:
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: nlb
+
+podDisruptionBudget:
+  enabled: true
+  maxUnavailable: 1

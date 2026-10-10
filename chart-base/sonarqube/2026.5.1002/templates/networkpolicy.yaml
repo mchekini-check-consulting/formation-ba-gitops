@@ -1,0 +1,78 @@
+{{- if .Values.networkPolicy.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ template "sonarqube.fullname" . }}-network-policy
+  labels: {{- include "sonarqube.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app: {{ template "sonarqube.name" . }}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: {{ template "sonarqube.name" . }}
+              release: {{ .Release.Name }}
+      ports:
+        - port: {{ .Values.service.internalPort }}
+    {{ if .Values.prometheusExporter.enabled }}
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              networking/namespace: {{ .Values.networkPolicy.prometheusNamespace }}
+      ports:
+        - port: {{ .Values.prometheusExporter.ceBeanPort }}
+          protocol: TCP
+        - port: {{ .Values.prometheusExporter.webBeanPort }}
+          protocol: TCP
+    {{ end }}
+    {{- if .Values.agentOrchestrator.enabled }}
+    - from:
+        - podSelector:
+            matchLabels: {{- include "sonarqube.agentOrchestrator.selectorLabels" . | nindent 14 }}
+      ports:
+        - port: {{ .Values.service.internalPort }}
+          protocol: TCP
+    {{- end }}
+    {{- if eq (include "sonarqube.vortex.enabled" .) "true" }}
+    - from:
+        - podSelector:
+            matchLabels:
+              app: {{ include "sonarqube.name" . }}-vortex
+              release: {{ .Release.Name }}
+      ports:
+        - port: {{ .Values.service.internalPort }}
+          protocol: TCP
+    {{- end }}
+  egress:
+{{ include "sonarqube.dnsEgressRule" . | indent 4 }}
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+        - ipBlock:
+            cidr: "::/0"
+{{- end -}}
+
+{{- if and .Values.networkPolicy.enabled (or .Values.networkPolicy.additionalNetworkPolicies .Values.networkPolicy.additionalNetworkPolicys) }}
+---
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: {{ template "sonarqube.fullname" . }}-additional-network-policy
+  labels: {{- include "sonarqube.labels" . | nindent 4 }}
+spec:
+{{- if.Values.networkPolicy.additionalNetworkPolicys -}}
+{{- with .Values.networkPolicy.additionalNetworkPolicys -}}
+{{ toYaml . | nindent 2 }}
+{{- end -}}
+{{- else -}}
+{{- with .Values.networkPolicy.additionalNetworkPolicies -}}
+{{ toYaml . | nindent 2 }}
+{{- end -}}
+{{- end -}}
+{{- end -}}

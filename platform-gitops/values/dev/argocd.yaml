@@ -1,0 +1,20 @@
+# dev : une seule instance de chaque composant (défauts du chart)
+
+global:
+  domain: argocd-dev.check-consulting.net
+
+configs:
+  cm:
+    # Le chart déduit https://<global.domain> : forcé en http tant qu'il n'y a pas de TLS
+    url: http://argocd-dev.check-consulting.net
+
+# Ingress servi par Traefik ; external-dns crée l'ALIAS argocd-dev.check-consulting.net -> NLB.
+# HTTP seulement (pas de certificat valide) : identifiants en clair, à remplacer par du TLS.
+server:
+  ingress:
+    enabled: true
+    ingressClassName: traefik
+    hostname: argocd-dev.check-consulting.net
+    path: /
+    pathType: Prefix
+    tls: false

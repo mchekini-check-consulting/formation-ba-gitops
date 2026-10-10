@@ -1,0 +1,29 @@
+# Généré par scripts/sync-crds.sh traefik 41.6.1 - NE PAS MODIFIER
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - accesscontrolpolicies.hub.traefik.io.yml
+  - aiservices.hub.traefik.io.yml
+  - apiauths.hub.traefik.io.yml
+  - apibundles.hub.traefik.io.yml
+  - apicatalogitems.hub.traefik.io.yml
+  - apiplans.hub.traefik.io.yml
+  - apiportalauths.hub.traefik.io.yml
+  - apiportals.hub.traefik.io.yml
+  - apiratelimits.hub.traefik.io.yml
+  - apis.hub.traefik.io.yml
+  - apiversions.hub.traefik.io.yml
+  - contentitems.hub.traefik.io.yml
+  - ingressroutes.traefik.io.yml
+  - ingressroutetcps.traefik.io.yml
+  - ingressrouteudps.traefik.io.yml
+  - managedapplications.hub.traefik.io.yml
+  - managedsubscriptions.hub.traefik.io.yml
+  - middlewares.traefik.io.yml
+  - middlewaretcps.traefik.io.yml
+  - serverstransports.traefik.io.yml
+  - serverstransporttcps.traefik.io.yml
+  - tlsoptions.traefik.io.yml
+  - tlsstores.traefik.io.yml
+  - traefikservices.traefik.io.yml
+  - uplinks.hub.traefik.io.yml

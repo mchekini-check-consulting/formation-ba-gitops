@@ -1,0 +1,28 @@
+# D'où viennent les charts Helm de chaque outil (lu par scripts/sync-charts.sh).
+tools:
+  argocd:
+    repo: https://argoproj.github.io/argo-helm
+    chart: argo-cd
+
+  traefik:
+    repo: https://traefik.github.io/charts
+    chart: traefik
+
+  external-dns:
+    repo: https://kubernetes-sigs.github.io/external-dns/
+    chart: external-dns
+
+  # Opérateur PostgreSQL : bases des outils de la plateforme et des applications dev
+  cloudnative-pg:
+    repo: https://cloudnative-pg.github.io/charts
+    chart: cloudnative-pg
+
+  # Une base PostgreSQL (ressource Cluster de CloudNativePG), réutilisé par chaque
+  # outil qui a besoin d'une base (tools.<outil>.chart: cnpg-cluster)
+  cnpg-cluster:
+    repo: https://cloudnative-pg.github.io/charts
+    chart: cluster
+
+  sonarqube:
+    repo: https://SonarSource.github.io/helm-chart-sonarqube
+    chart: sonarqube

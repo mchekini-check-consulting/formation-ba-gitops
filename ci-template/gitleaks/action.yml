@@ -1,0 +1,24 @@
+# Recherche de secrets dans les commits de la PR (base..HEAD), avec le binaire officiel
+# gitleaks (l'action gitleaks/gitleaks-action exige une licence pour une organisation).
+# Prérequis : checkout avec fetch-depth: 0.
+name: gitleaks
+description: Détection de secrets dans les commits
+
+inputs:
+  base:
+    description: Commit de départ du scan (par défaut la base de la PR)
+    default: ${{ github.event.pull_request.base.sha }}
+  version:
+    default: 8.24.0
+
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        BASE: ${{ inputs.base }}
+        VERSION: ${{ inputs.version }}
+      run: |
+        curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${VERSION}/gitleaks_${VERSION}_linux_x64.tar.gz" \
+          | tar -xz -C "$RUNNER_TEMP" gitleaks
+        "$RUNNER_TEMP/gitleaks" git --redact --verbose --log-opts="$BASE..HEAD" .

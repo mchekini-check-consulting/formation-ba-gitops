@@ -1,0 +1,28 @@
+# Values communes du chart sonarqube (édition Community).
+community:
+  enabled: true
+
+# Base : Cluster CloudNativePG sonarqube-db (Application sonarqube-db, wave 20).
+# Mot de passe lu dans le Secret généré par l'opérateur : rien en clair dans Git.
+jdbcOverwrite:
+  enabled: true
+  jdbcUrl: jdbc:postgresql://sonarqube-db-rw:5432/sonarqube
+  jdbcUsername: sonarqube
+  jdbcSecretName: sonarqube-db-app
+  jdbcSecretPasswordKey: password
+
+# Passcode exigé par le chart (endpoints de monitoring, sonde liveness).
+# Réutilise le mot de passe aléatoire du Secret CloudNativePG pour ne pas
+# stocker de secret dans Git. À remplacer par un secret dédié quand un
+# gestionnaire de secrets sera en place.
+monitoringPasscodeSecretName: sonarqube-db-app
+monitoringPasscodeSecretKey: password
+
+# Données SonarQube (index Elasticsearch, plugins) : StorageClass par défaut (gp3)
+persistence:
+  enabled: true
+  size: 5Gi
+
+# Pod de test Helm (helm test) : inutile avec ArgoCD
+tests:
+  enabled: false

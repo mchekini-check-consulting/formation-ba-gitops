@@ -1,0 +1,7 @@
+# Généré par scripts/sync-crds.sh argocd 10.9.6 - NE PAS MODIFIER
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - applications.argoproj.io.yml
+  - applicationsets.argoproj.io.yml
+  - appprojects.argoproj.io.yml

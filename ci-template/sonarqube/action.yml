@@ -1,0 +1,27 @@
+# Analyse SonarQube d'un composant puis attente du quality gate : échoue si le gate est rouge.
+# À lancer dans le job unit-test, après l'action unit-test (rapport de couverture sur place).
+# Projet Sonar : <dépôt>-<composant>. Sources, tests et chemins des rapports :
+# <composant>/sonar-project.properties. Prérequis : checkout avec fetch-depth: 0.
+name: sonarqube
+description: Analyse SonarQube + quality gate d'un composant
+
+inputs:
+  component:
+    required: true
+  token:
+    required: true
+  host-url:
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - uses: SonarSource/sonarqube-scan-action@v5
+      env:
+        SONAR_TOKEN: ${{ inputs.token }}
+        SONAR_HOST_URL: ${{ inputs.host-url }}
+      with:
+        projectBaseDir: ${{ inputs.component }}
+        args: >
+          -Dsonar.projectKey=${{ github.event.repository.name }}-${{ inputs.component }}
+          -Dsonar.qualitygate.wait=true

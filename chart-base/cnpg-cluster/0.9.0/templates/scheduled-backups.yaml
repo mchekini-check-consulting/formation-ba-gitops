@@ -1,0 +1,25 @@
+{{ if .Values.backups.enabled }}
+{{ range .Values.backups.scheduledBackups -}}
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: {{ include "cluster.fullname" $ }}-{{ .name }}
+  namespace: {{ include "cluster.namespace" $ }}
+  labels:
+    cnpg.io/cluster: {{ include "cluster.fullname" $ }}
+    {{- include "cluster.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: backups
+spec:
+  immediate: true
+  schedule: {{ .schedule | quote }}
+  method: {{ .method }}
+  backupOwnerReference: {{ .backupOwnerReference }}
+  cluster:
+    name: {{ include "cluster.fullname" $ }}
+  {{- with .pluginConfiguration }}
+  pluginConfiguration:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{ end -}}
+{{ end }}
