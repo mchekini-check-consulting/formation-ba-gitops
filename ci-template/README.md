@@ -35,7 +35,9 @@ Contrat de chaque composant (dossier avec Dockerfile) :
 Le dépôt appelant fait lui-même le `actions/checkout` (avec `fetch-depth: 0`
 pour `detect-changes`, `gitleaks` et `sonarqube`) et porte les `permissions` des jobs.
 
-Secrets d'organisation requis pour `sonarqube` : `SONAR_TOKEN`, `SONAR_HOST_URL`.
+Secret d'organisation requis pour `sonarqube` : `SONAR_TOKEN` (Global Analysis Token,
+permission « Create Projects »). L'URL du serveur est la valeur par défaut de l'input
+`host-url` (http://sonarqube-dev.check-consulting.net).
 
 Dépôt privé : autoriser l'accès dans
 Settings > Actions > General > Access > « Accessible from repositories in the organization ».

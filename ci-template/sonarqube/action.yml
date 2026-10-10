@@ -9,9 +9,11 @@ inputs:
   component:
     required: true
   token:
+    description: Global Analysis Token (secret d'organisation SONAR_TOKEN)
     required: true
   host-url:
-    required: true
+    description: SonarQube de la plateforme (platform-gitops/values/dev/sonarqube.yaml)
+    default: http://sonarqube-dev.check-consulting.net
 
 runs:
   using: composite

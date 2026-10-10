@@ -7,6 +7,9 @@
 # version dans platform.yaml (+ sync-crds.sh / sync-charts.sh si la version
 # est nouvelle).
 #
+# Relançable : sur un cluster déjà bootstrappé, il met seulement à jour le
+# secret du dépôt et platform-root (ex. après un changement de gitops.repoURL).
+#
 # Prérequis : kubectl (connecté au bon cluster), helm, yq (mikefarah v4)
 # Dépôt privé : exporter GITHUB_TOKEN avant de lancer le script.
 set -euo pipefail
@@ -33,14 +36,21 @@ fi
 echo "==> 1/3 CRDs ArgoCD $VERSION (crd-base)"
 kubectl apply --server-side -k "$GITOPS_DIR/../crd-base/argocd/$VERSION"
 
-echo "==> 2/3 ArgoCD $VERSION (helm depuis chart-base, sans CRDs)"
-# Même release / chart / values que l'Application argocd qui prend le relais
-helm upgrade --install argocd "$GITOPS_DIR/../chart-base/argocd/$VERSION" \
-  --namespace argocd --create-namespace \
-  --skip-crds --set crds.install=false \
-  -f "$GITOPS_DIR/values/common/argocd.yaml" \
-  -f "$GITOPS_DIR/values/$ENV/argocd.yaml" \
-  --wait
+if kubectl -n argocd get application argocd >/dev/null 2>&1; then
+  # Relance (ex. changement de dépôt) : ArgoCD se gère déjà lui-même. Pas de
+  # helm upgrade, qui refuserait les ressources créées depuis par ArgoCD
+  # (sans annotations meta.helm.sh/*) : seuls le secret et platform-root changent.
+  echo "==> 2/3 ArgoCD déjà géré par l'Application argocd : helm ignoré"
+else
+  echo "==> 2/3 ArgoCD $VERSION (helm depuis chart-base, sans CRDs)"
+  # Même release / chart / values que l'Application argocd qui prend le relais
+  helm upgrade --install argocd "$GITOPS_DIR/../chart-base/argocd/$VERSION" \
+    --namespace argocd --create-namespace \
+    --skip-crds --set crds.install=false \
+    -f "$GITOPS_DIR/values/common/argocd.yaml" \
+    -f "$GITOPS_DIR/values/$ENV/argocd.yaml" \
+    --wait
+fi
 
 if [[ -n "${GITHUB_TOKEN:-}" ]]; then
   echo "==> Accès au dépôt privé $REPO_URL"
