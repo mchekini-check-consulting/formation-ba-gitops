@@ -3,7 +3,9 @@
 {{- if $ing.enabled }}
 {{- $ctx := dict "app" $app "root" $ }}
 {{- $path := $ing.path | default "/" }}
-{{- $host := $ing.host | default (printf "%s-%s.%s" $.Values.env $.Values.project $.Values.domain) }}
+{{- /* Un host par application : <application>.<project>.<env>.<domain>,
+       couvert par le certificat *.<project>.<env>.<domain> (certificate.yaml) */}}
+{{- $host := $ing.host | default (printf "%s.%s.%s.%s" $app.name $.Values.project $.Values.env $.Values.domain) }}
 {{- if $ing.stripPrefix }}
 ---
 # Retire le préfixe (ex. /api) avant d'envoyer la requête au pod
@@ -31,6 +33,10 @@ metadata:
   {{- end }}
 spec:
   ingressClassName: {{ $.Values.ingressClassName }}
+  tls:
+    - hosts:
+        - {{ $host }}
+      secretName: {{ include "gba.tlsSecret" $ }}
   rules:
     - host: {{ $host }}
       http:

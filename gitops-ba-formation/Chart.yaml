@@ -1,4 +1,4 @@
 apiVersion: v2
 name: gitops-ba-formation
 description: Déploie sur EKS les applications décrites dans le helm.yaml d'un dépôt projet
-version: 0.2.0
+version: 0.3.0

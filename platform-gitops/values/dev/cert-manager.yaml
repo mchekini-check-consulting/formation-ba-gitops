@@ -5,8 +5,9 @@ extraObjects:
   # Let's Encrypt, validation DNS-01 dans la zone check-consulting.net.
   # Compte ACME sans email (facultatif ; Let's Encrypt n'envoie plus d'alertes
   # d'expiration) : cert-manager renouvelle 30 jours avant l'expiration.
-  # Staging d'abord (certificat non reconnu par les navigateurs, sans limite
-  # de quota), puis https://acme-v02.api.letsencrypt.org/directory.
+  # Production : certificats reconnus (navigateurs, JVM du scanner Sonar).
+  # Pour tester un changement d'IAM / DNS sans consommer les quotas :
+  # https://acme-staging-v02.api.letsencrypt.org/directory (non reconnu).
   - |
     apiVersion: cert-manager.io/v1
     kind: ClusterIssuer
@@ -16,7 +17,7 @@ extraObjects:
         argocd.argoproj.io/sync-wave: "1"
     spec:
       acme:
-        server: https://acme-staging-v02.api.letsencrypt.org/directory
+        server: https://acme-v02.api.letsencrypt.org/directory
         privateKeySecretRef:
           name: letsencrypt-account
         solvers:

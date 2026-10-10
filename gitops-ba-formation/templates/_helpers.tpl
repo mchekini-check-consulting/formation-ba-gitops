@@ -18,3 +18,8 @@ tier: {{ .app.type }}
 {{- define "gba.selectorLabels" -}}
 app.kubernetes.io/name: {{ .app.name }}
 {{- end -}}
+
+{{/* Secret TLS du projet (wildcard *.<project>.<env>.<domain>). Entrée : $ */}}
+{{- define "gba.tlsSecret" -}}
+{{ .Values.project }}-tls
+{{- end -}}
