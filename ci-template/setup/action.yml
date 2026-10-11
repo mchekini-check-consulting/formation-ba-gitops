@@ -43,7 +43,14 @@ runs:
       with:
         distribution: temurin
         java-version: 21
-        cache: maven
+        cache: maven   # ~/.m2/repository uniquement
+    # Distribution Maven téléchargée par mvnw (~/.m2/wrapper) : sans ce cache, chaque
+    # job la retélécharge (wget, sans nouvel essai) et un échec réseau casse le job
+    - if: steps.detect.outputs.stack == 'maven'
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2/wrapper
+        key: maven-wrapper-${{ hashFiles(format('{0}/.mvn/wrapper/maven-wrapper.properties', inputs.component)) }}
     - if: steps.detect.outputs.stack == 'python'
       uses: actions/setup-python@v5
       with:
