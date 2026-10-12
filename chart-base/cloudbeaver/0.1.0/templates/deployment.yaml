@@ -1,0 +1,92 @@
+{{- $admin := required "server.admin.passwordSecret.name requis" .Values.server.admin.passwordSecret.name }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "cloudbeaver.fullname" . }}
+  labels:
+    {{- include "cloudbeaver.labels" . | nindent 4 }}
+spec:
+  replicas: 1                 # workspace en ReadWriteOnce : une seule instance
+  strategy:
+    type: Recreate            # l'ancien pod libère le volume avant le nouveau
+  selector:
+    matchLabels:
+      {{- include "cloudbeaver.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "cloudbeaver.selectorLabels" . | nindent 8 }}
+    spec:
+      # Utilisateur dbeaver de l'image (UID/GID 8978) : pas de chown au démarrage
+      securityContext:
+        runAsUser: 8978
+        runAsGroup: 8978
+        fsGroup: 8978
+        runAsNonRoot: true
+      containers:
+        - name: cloudbeaver
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8978
+          env:
+            # Configuration automatique (premier démarrage) : nom, URL, compte admin
+            - name: CB_SERVER_NAME
+              value: {{ .Values.server.name | quote }}
+            - name: CB_SERVER_URL
+              value: {{ required "server.url requis" .Values.server.url | quote }}
+            - name: CB_ADMIN_NAME
+              value: {{ .Values.server.admin.name | quote }}
+            - name: CB_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $admin }}
+                  key: {{ .Values.server.admin.passwordSecret.key }}
+            - name: CLOUDBEAVER_APP_ANONYMOUS_ACCESS_ENABLED
+              value: {{ .Values.server.anonymousAccess | quote }}
+            {{- if .Values.database.url }}
+            # Base interne sur PostgreSQL au lieu de H2
+            - name: CLOUDBEAVER_DB_DRIVER
+              value: postgres-jdbc
+            - name: CLOUDBEAVER_DB_URL
+              value: {{ .Values.database.url | quote }}
+            - name: CLOUDBEAVER_DB_USER
+              value: {{ required "database.user requis" .Values.database.user | quote }}
+            - name: CLOUDBEAVER_DB_SCHEMA
+              value: {{ .Values.database.schema | quote }}
+            - name: CLOUDBEAVER_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ required "database.passwordSecret.name requis" .Values.database.passwordSecret.name }}
+                  key: {{ .Values.database.passwordSecret.key }}
+            {{- end }}
+            - name: JAVA_TOOL_OPTIONS
+              value: {{ .Values.javaToolOptions | quote }}
+            {{- with .Values.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          # Démarrage lent (JVM + migration de la base interne) : startupProbe large
+          startupProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 10
+            failureThreshold: 30
+          readinessProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 20
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: workspace
+              mountPath: /opt/cloudbeaver/workspace
+      volumes:
+        - name: workspace
+          persistentVolumeClaim:
+            claimName: {{ include "cloudbeaver.fullname" . }}-workspace

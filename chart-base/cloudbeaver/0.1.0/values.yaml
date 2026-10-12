@@ -1,0 +1,55 @@
+image:
+  repository: dbeaver/cloudbeaver   # multi-arch (amd64, arm64)
+  tag: ""                           # défaut : appVersion du chart
+  pullPolicy: IfNotPresent
+
+# Configuration automatique du serveur au premier démarrage (pas d'assistant web)
+server:
+  name: CloudBeaver
+  url: ""                           # ex. https://cloudbeaver.example.com
+  # Compte administrateur : nom en clair, mot de passe dans un Secret (jamais dans Git).
+  # Politique CloudBeaver : 8 caractères min., majuscules et minuscules, 1 chiffre.
+  admin:
+    name: admin
+    passwordSecret:
+      name: ""
+      key: password
+    # Job PreSync qui crée le Secret avec un mot de passe aléatoire s'il n'existe pas
+    # (un Secret existant n'est jamais modifié). false : Secret fourni autrement.
+    generatePassword:
+      enabled: true
+      image: alpine/k8s:1.31.13      # kubectl + sh, multi-arch (amd64, arm64)
+  anonymousAccess: false            # aucune page visible sans compte
+
+# Base interne de CloudBeaver (comptes, équipes, droits d'accès aux connexions).
+# url vide = H2 embarquée dans le workspace.
+database:
+  url: ""                           # ex. jdbc:postgresql://cloudbeaver-db-rw:5432/cloudbeaver
+  user: ""
+  schema: cb
+  passwordSecret:
+    name: ""
+    key: password
+
+# Workspace : connexions (data-sources.json), identifiants chiffrés, scripts SQL
+persistence:
+  size: 2Gi
+  storageClass: ""                  # vide : StorageClass par défaut du cluster
+  keep: true                        # PVC conservé si la release est supprimée
+
+ingress:
+  enabled: false
+  className: ""
+  host: ""
+  annotations: {}
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 768Mi
+  limits:
+    memory: 2Gi
+
+javaToolOptions: "-XX:MaxRAMPercentage=75.0"
+
+extraEnv: []

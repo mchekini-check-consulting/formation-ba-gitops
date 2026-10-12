@@ -2,12 +2,13 @@
 # L'opérateur crée :
 #   - le Service sonarqube-db-rw (lecture/écriture)
 #   - le Secret sonarqube-db-app (username, password, jdbc-uri, ...) lu par SonarQube
+#   - le Secret sonarqube-db-superuser (postgres) : connexion admin depuis CloudBeaver
 fullnameOverride: sonarqube-db
 
 cluster:
   initdb:
     database: sonarqube
     owner: sonarqube
-  enableSuperuserAccess: false
+  enableSuperuserAccess: true    # superuser postgres, utilisé par CloudBeaver
   storage:
     size: 5Gi        # StorageClass par défaut du cluster (gp3, addon EBS CSI)

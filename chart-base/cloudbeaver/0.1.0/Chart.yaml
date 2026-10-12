@@ -1,0 +1,8 @@
+apiVersion: v2
+name: cloudbeaver
+description: >-
+  CloudBeaver Community Edition (client SQL web). Chart maison : DBeaver ne publie
+  pas de chart Helm pour l'édition CE (celui de cloudbeaver-deploy vise l'édition EE).
+type: application
+version: 0.1.0
+appVersion: "26.2.2"

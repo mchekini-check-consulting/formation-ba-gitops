@@ -1,0 +1,5 @@
+# dev : une seule instance PostgreSQL. Sans réplique, le PDB bloquerait
+# le drain du nœud (mise à jour du node group) : désactivé.
+cluster:
+  instances: 1
+  enablePDB: false
