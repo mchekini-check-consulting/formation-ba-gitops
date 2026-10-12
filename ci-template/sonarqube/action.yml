@@ -13,7 +13,7 @@ inputs:
     required: true
   host-url:
     description: SonarQube de la plateforme (platform-gitops/values/dev/sonarqube.yaml)
-    default: https://sonarqube-dev.check-consulting.net
+    default: https://sonarqube.dev.check-consulting.net
 
 runs:
   using: composite

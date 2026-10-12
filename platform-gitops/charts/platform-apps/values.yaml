@@ -49,7 +49,7 @@ tools:
     version: ""
     namespace: external-dns
     syncWave: "10"
-  # Certificat TLS wildcard *.check-consulting.net (Let's Encrypt, DNS-01 Route53),
+  # Certificat TLS wildcard *.<env>.check-consulting.net (Let's Encrypt, DNS-01 Route53),
   # certificat par défaut de Traefik. ClusterIssuer + Certificate : extraObjects
   # des values. Wave 5 : après Traefik, dont le namespace reçoit le Certificate.
   cert-manager:

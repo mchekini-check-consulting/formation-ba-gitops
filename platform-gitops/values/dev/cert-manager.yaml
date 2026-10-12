@@ -26,7 +26,8 @@ extraObjects:
                 region: eu-west-3
                 hostedZoneID: Z02992983P6JBHBJ5UT37   # zone publique check-consulting.net
 
-  # Wildcard servi par Traefik (tlsStore default, values/common/traefik.yaml).
+  # Wildcard de l'environnement *.dev.check-consulting.net (argocd.dev, sonarqube.dev, ...),
+  # servi par Traefik (tlsStore default, values/common/traefik.yaml).
   # Le Secret doit être dans le namespace de Traefik.
   - |
     apiVersion: cert-manager.io/v1
@@ -39,7 +40,7 @@ extraObjects:
     spec:
       secretName: wildcard-check-consulting-tls
       dnsNames:
-        - "*.check-consulting.net"
+        - "*.dev.check-consulting.net"
       issuerRef:
         kind: ClusterIssuer
         name: letsencrypt

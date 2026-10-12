@@ -37,7 +37,7 @@ pour `detect-changes`, `gitleaks` et `sonarqube`) et porte les `permissions` des
 
 Secret d'organisation requis pour `sonarqube` : `SONAR_TOKEN` (Global Analysis Token,
 permission « Create Projects »). L'URL du serveur est la valeur par défaut de l'input
-`host-url` (https://sonarqube-dev.check-consulting.net).
+`host-url` (https://sonarqube.dev.check-consulting.net).
 
 Dépôt privé : autoriser l'accès dans
 Settings > Actions > General > Access > « Accessible from repositories in the organization ».

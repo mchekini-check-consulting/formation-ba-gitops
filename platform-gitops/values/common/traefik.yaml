@@ -37,8 +37,8 @@ ports:
           permanent: true
 
 # Certificat présenté par tout routeur sur websecure (TLS activé par défaut par
-# le chart) : wildcard *.check-consulting.net émis par cert-manager
-# (values/<env>/cert-manager.yaml). Aucun Ingress n'a besoin de section tls.
+# le chart) : wildcard *.<env>.check-consulting.net de l'environnement, émis par
+# cert-manager (values/<env>/cert-manager.yaml). Aucun Ingress n'a besoin de section tls.
 # Tant que le Secret n'existe pas, Traefik sert son certificat auto-signé.
 tlsStore:
   default:

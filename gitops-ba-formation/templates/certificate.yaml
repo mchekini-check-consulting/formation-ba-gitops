@@ -1,6 +1,6 @@
 {{- /* Certificat wildcard *.<project>.<env>.<domain> du projet, émis par cert-manager
        (ClusterIssuer de la plateforme) : couvre tous les hosts <application>.<project>.<env>.<domain>.
-       Le wildcard de la plateforme (*.<domain>) ne couvre qu'un niveau. */}}
+       Le wildcard de la plateforme (*.<env>.<domain>) ne couvre qu'un niveau. */}}
 {{- $ingress := false }}
 {{- range .Values.applications }}
 {{- if (.ingress | default dict).enabled }}{{ $ingress = true }}{{ end }}
