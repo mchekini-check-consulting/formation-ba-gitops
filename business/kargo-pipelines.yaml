@@ -13,9 +13,12 @@ spec:
   description: Pipelines Kargo (Project, Warehouse, Stages) des dépôts formation-ba-*
   sourceRepos:
     - https://github.com/mchekini-check-consulting/formation-ba-gitops.git
+  # namespace "*" : l'Application n'a pas de namespace par défaut (chaque ressource
+  # Kargo porte le sien). Le périmètre est limité par les whitelists ci-dessous
+  # (ressources Kargo et namespaces uniquement) et par sourceRepos.
   destinations:
     - name: in-cluster
-      namespace: "formation-ba-*"
+      namespace: "*"
   clusterResourceWhitelist:
     - { group: "", kind: Namespace }                  # namespace du Project (adopté par Kargo)
     - { group: kargo.akuity.io, kind: Project }

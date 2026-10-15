@@ -35,9 +35,16 @@ spec:
                 - project: formation-ba-gestion-financiere
                 - project: formation-ba-quali-formation
                 - project: formation-ba-scpi-invest
+  # Retirer un projet ou un environnement supprime l'Application, mais pas les
+  # Deployments, Services... déjà déployés (suppression = geste manuel)
+  syncPolicy:
+    preserveResourcesOnDeletion: true
   template:
     metadata:
       name: '{{ .env }}-{{ .project }}'
+      annotations:
+        # La Stage Kargo <env> du Project <projet> peut synchroniser cette Application
+        kargo.akuity.io/authorized-stage: '{{ .project }}:{{ .env }}'
     spec:
       project: '{{ .project }}'
       sources:
