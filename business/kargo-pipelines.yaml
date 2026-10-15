@@ -1,0 +1,43 @@
+# Pipelines Kargo des dépôts formation-ba-* (chart kargo-pipelines/ de ce dépôt).
+# Synchronisé par business-root. Prérequis : Kargo installé (tools.kargo, wave 40).
+#
+# AppProject dédié : uniquement des ressources Kargo et les namespaces des Projects.
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: kargo-pipelines
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  description: Pipelines Kargo (Project, Warehouse, Stages) des dépôts formation-ba-*
+  sourceRepos:
+    - https://github.com/mchekini-check-consulting/formation-ba-gitops.git
+  destinations:
+    - name: in-cluster
+      namespace: "formation-ba-*"
+  clusterResourceWhitelist:
+    - { group: "", kind: Namespace }                  # namespace du Project (adopté par Kargo)
+    - { group: kargo.akuity.io, kind: Project }
+  namespaceResourceWhitelist:
+    - { group: kargo.akuity.io, kind: ProjectConfig }
+    - { group: kargo.akuity.io, kind: Warehouse }
+    - { group: kargo.akuity.io, kind: Stage }
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kargo-pipelines
+  namespace: argocd
+spec:
+  project: kargo-pipelines
+  source:
+    repoURL: https://github.com/mchekini-check-consulting/formation-ba-gitops.git
+    targetRevision: main
+    path: kargo-pipelines
+  destination:
+    name: in-cluster
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

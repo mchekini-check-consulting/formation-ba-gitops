@@ -10,6 +10,11 @@ destinationServer: https://kubernetes.default.svc
 crdBase:
   syncWave: "-10"   # CRDs avant les charts (wave 0)
 
+# Application business-root (templates/business-root.yaml) : dossier business/
+# du dépôt gitops. Fourni par clusters/<env>/platform.yaml ; désactivée par défaut.
+businessRoot:
+  enabled: false
+
 syncPolicy:
   automated:
     prune: true
@@ -104,3 +109,12 @@ tools:
     syncWave: "40"
     crds: false
     finalizer: false
+  # Promotion des images dev -> qualif -> preprod -> prod (Kargo). Pipelines :
+  # formation-ba-gitops/kargo-pipelines, via business-root (wave 50).
+  # Wave 40 : après cert-manager (certificats autosignés de ses webhooks).
+  # Lecture ECR : rôle IAM par Pod Identity sur kargo/kargo-controller (Terraform).
+  kargo:
+    enabled: true
+    version: ""
+    namespace: kargo
+    syncWave: "40"

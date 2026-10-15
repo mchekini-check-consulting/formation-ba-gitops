@@ -25,3 +25,10 @@ tools:
     repo: https://charts.jetstack.io
     chart: cert-manager
     set: crds.enabled=true   # les CRDs du chart cert-manager sont des templates
+
+  # Promotion des images (Kargo), chart OCI
+  kargo:
+    repo: oci://ghcr.io/akuity/kargo-charts
+    chart: kargo
+    # CRDs en templates ; workloads.install=false : sinon le rendu exige le mot de passe admin
+    set: crds.install=true,workloads.install=false

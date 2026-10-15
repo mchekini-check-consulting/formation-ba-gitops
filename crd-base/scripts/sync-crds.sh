@@ -28,8 +28,15 @@ if [[ "$CHART" == "null" ]]; then
   exit 1
 fi
 
+# Registre OCI (repo: oci://...) : le chart est adressé par <repo>/<chart>, sans --repo
+if [[ "$REPO" == oci://* ]]; then
+  SRC=("$REPO/$CHART")
+else
+  SRC=("$CHART" --repo "$REPO")
+fi
+
 # 1. Rendu du chart, on ne garde que les CRDs
-CRDS=$(helm template crds "$CHART" --repo "$REPO" --version "$VERSION" \
+CRDS=$(helm template crds "${SRC[@]}" --version "$VERSION" \
          --include-crds ${SET:+--set "$SET"} \
        | yq 'select(.kind == "CustomResourceDefinition")')
 

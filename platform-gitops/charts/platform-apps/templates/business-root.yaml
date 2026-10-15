@@ -1,0 +1,32 @@
+{{- /* Application business-root : déploiement des projets métier, géré par Git.
+       Synchronise le dossier business/ de formation-ba-gitops (AppProjects,
+       ApplicationSet formation-ba, pipelines Kargo), autrefois appliqué avec kubectl.
+       Sécurités :
+         - prune: false  : un objet retiré de Git n'est pas supprimé du cluster
+         - sans finalizer : supprimer business-root ne supprime pas en cascade
+                            l'ApplicationSet ni les applications des projets */}}
+{{- with .Values.businessRoot }}
+{{- if .enabled }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: business-root
+  namespace: {{ $.Values.argocdNamespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: {{ .syncWave | default "50" | quote }}
+spec:
+  project: {{ $.Values.project }}
+  source:
+    repoURL: {{ required "businessRoot.repoURL requis" .repoURL }}
+    targetRevision: {{ .targetRevision }}
+    path: {{ required "businessRoot.path requis" .path }}
+  destination:
+    server: {{ $.Values.destinationServer }}
+    namespace: {{ $.Values.argocdNamespace }}
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
+{{- end }}
+{{- end }}

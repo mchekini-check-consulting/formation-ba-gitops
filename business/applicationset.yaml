@@ -1,5 +1,5 @@
-# À appliquer dans ArgoCD (une fois), les AppProjects d'abord :
-#   kubectl apply -f appprojects.yaml -f applicationset.yaml
+# Synchronisé par l'Application business-root (platform-gitops) : un commit suffit,
+# plus de kubectl apply.
 #
 # Une Application par (environnement x projet), dans l'AppProject du projet :
 #   - chart  : gitops-ba-formation/ de ce dépôt

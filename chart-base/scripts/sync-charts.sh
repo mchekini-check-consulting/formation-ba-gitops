@@ -32,7 +32,12 @@ fi
 # puis le contenu du chart va directement dans <outil>/<version>/
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
-helm pull "$CHART" --repo "$REPO" --version "$VERSION" --untar --untardir "$TMP"
+# Registre OCI (repo: oci://...) : le chart est adressé par <repo>/<chart>, sans --repo
+if [[ "$REPO" == oci://* ]]; then
+  helm pull "$REPO/$CHART" --version "$VERSION" --untar --untardir "$TMP"
+else
+  helm pull "$CHART" --repo "$REPO" --version "$VERSION" --untar --untardir "$TMP"
+fi
 
 mkdir -p "$(dirname "$DEST")"
 mv "$TMP/$CHART" "$DEST"

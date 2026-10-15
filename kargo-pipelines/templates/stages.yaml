@@ -1,0 +1,59 @@
+{{- /* Par dépôt et par environnement : une Stage.
+       Promotion : clone de main -> tag de chaque composant dans helm.yaml
+       (applications.<index>.tag.<env>) -> commit -> push sur main -> sync de
+       l'Application ArgoCD <env>-<dépôt> (annotation kargo.akuity.io/authorized-stage
+       posée par l'ApplicationSet). */}}
+{{- range $p := .Values.projects }}
+{{- range $i, $env := $.Values.envs }}
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: {{ $env }}
+  namespace: {{ $p.name }}
+spec:
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: {{ $p.name }}
+      sources:
+        {{- if eq $i 0 }}
+        direct: true
+        {{- else }}
+        stages:
+          - {{ index $.Values.envs (sub $i 1) }}
+        {{- end }}
+  promotionTemplate:
+    spec:
+      vars:
+        - name: repoURL
+          value: {{ $.Values.github }}/{{ $p.name }}.git
+      steps:
+        - uses: git-clone
+          config:
+            repoURL: '{{ include "kp.expr" "vars.repoURL" }}'
+            checkout:
+              - branch: {{ $.Values.branch }}
+                path: ./repo
+        - uses: yaml-update
+          config:
+            path: ./repo/helm.yaml
+            updates:
+              {{- range $c := $p.components }}
+              - key: applications.{{ $c.index }}.tag.{{ $env }}
+                value: '{{ include "kp.expr" (printf "imageFrom(%q).Tag" (include "kp.image" (dict "root" $ "project" $p.name "component" $c.name))) }}'
+              {{- end }}
+        - uses: git-commit
+          config:
+            path: ./repo
+            message: 'promote({{ $env }}):{{ range $c := $p.components }} {{ $c.name }}={{ include "kp.expr" (printf "imageFrom(%q).Tag" (include "kp.image" (dict "root" $ "project" $p.name "component" $c.name))) }}{{ end }}'
+        - uses: git-push
+          config:
+            path: ./repo
+            targetBranch: {{ $.Values.branch }}
+        - uses: argocd-update
+          config:
+            apps:
+              - name: {{ $env }}-{{ $p.name }}
+{{- end }}
+{{- end }}
