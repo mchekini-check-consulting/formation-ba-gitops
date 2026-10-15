@@ -30,6 +30,12 @@ warehouse:
 # Dépôts métier. index = position du composant dans la liste applications de
 # son helm.yaml (0 = premier). NE PAS réordonner applications dans helm.yaml
 # sans mettre à jour l'index ici : Kargo écrirait le tag d'un autre composant.
+# Format exigé dans helm.yaml : tag en style bloc, une valeur par ligne, sans
+# commentaire en fin de ligne (Kargo remplace jusqu'à la fin de la ligne) :
+#   tag:
+#     dev: "abc1234"
+#     qualif: ""
+# Un tag sur une ligne ({dev: ..., qualif: ...}) est corrompu à la première promotion.
 projects:
   - name: formation-ba-quali-formation
     components:
