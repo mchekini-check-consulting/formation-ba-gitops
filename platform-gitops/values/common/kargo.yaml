@@ -1,0 +1,59 @@
+# Values communes du chart kargo (promotion des images dev -> qualif -> preprod -> prod).
+# Pipelines (Projects, Warehouses, Stages) : formation-ba-gitops/kargo-pipelines,
+# déployés par business-root.
+
+# CRDs : crd-base/kargo/<version> (Application crds-kargo, wave -10)
+crds:
+  install: false
+
+# Identifiants partagés par tous les Projects : namespace créé par le chart.
+# Un seul Secret Git (PAT) pour les dépôts formation-ba-*, créé à la main :
+#   kubectl -n kargo-shared-resources create secret generic kargo-git-creds \
+#     --from-literal=repoURL='^https://github.com/mchekini-check-consulting/formation-ba-.*$' \
+#     --from-literal=repoURLIsRegex=true \
+#     --from-literal=username=<compte GitHub du PAT> --from-literal=password=<PAT>
+#   kubectl -n kargo-shared-resources label secret kargo-git-creds kargo.akuity.io/cred-type=git
+global:
+  sharedResources:
+    namespace: kargo-shared-resources
+
+api:
+  # Compte admin local (SSO plus tard) : hash et clé dans un Secret créé à la main,
+  # jamais dans Git (clés ADMIN_ACCOUNT_PASSWORD_HASH, ADMIN_ACCOUNT_TOKEN_SIGNING_KEY)
+  secret:
+    name: kargo-admin
+  adminAccount:
+    enabled: true
+    tokenTTL: 24h
+  # SSO GitHub (plus tard) : OAuth App + Dex, callback https://<api.host>/dex/callback
+  oidc:
+    enabled: false
+  # TLS terminé par Traefik (wildcard *.<env>.check-consulting.net)
+  tls:
+    enabled: false
+    terminatedUpstream: true
+  ingress:
+    enabled: true
+    ingressClassName: traefik
+    pathType: Prefix
+    tls:
+      enabled: false
+  # Pas d'Argo Rollouts dans le cluster (pas de vérification par AnalysisTemplate)
+  rollouts:
+    integrationEnabled: false
+
+controller:
+  # Auteur des commits de promotion dans les helm.yaml
+  gitClient:
+    name: kargo-bot
+    email: kargo-bot@users.noreply.github.com
+    # Push concurrent d'un développeur sur main : rebase puis nouvelle tentative
+    pushIntegrationPolicy: RebaseOrMerge
+  rollouts:
+    integrationEnabled: false
+  argocd:
+    namespace: argocd
+
+# Pas de webhooks entrants (GitHub/ECR) : les Warehouses interrogent ECR (polling)
+externalWebhooksServer:
+  enabled: false

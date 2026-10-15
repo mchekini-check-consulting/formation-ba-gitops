@@ -13,7 +13,7 @@ Push sur main (`ci.yaml`) :
 |------------------|-----------------------------------------------------------------------------|
 | `detect-changes` | liste les dossiers modifiés contenant un Dockerfile + sha court (7 car.)    |
 | `build-push`     | construit l'image d'un dossier et la pousse dans ECR (OIDC)                 |
-| `update-tag`     | écrit le sha dans `helm.yaml` (`tag.dev`) et pousse le commit -> ArgoCD dev |
+| `update-tag`     | écrit le sha dans `helm.yaml` (`tag.dev`) et pousse le commit -> ArgoCD dev. **Désactivé par défaut** : Kargo écrit `tag.dev` (job `if: vars.CI_UPDATE_TAG == 'true'`) ; ne jamais activer les deux |
 
 Pull request (`pr.yaml`) :
 

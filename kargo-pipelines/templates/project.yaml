@@ -1,0 +1,35 @@
+{{- /* Par dépôt : namespace du Project (créé ici pour l'ordre de synchronisation
+       ArgoCD, puis adopté par Kargo grâce au label), Project et ProjectConfig. */}}
+{{- range .Values.projects }}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .name }}
+  labels:
+    kargo.akuity.io/project: "true"
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+    # Supprimer le Project ne supprime pas le namespace (historique des Freights)
+    kargo.akuity.io/keep-namespace: "true"
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Project
+metadata:
+  name: {{ .name }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: ProjectConfig
+metadata:
+  name: {{ .name }}
+  namespace: {{ .name }}
+spec:
+  promotionPolicies:
+    {{- range $.Values.autoPromote }}
+    - stageSelector:
+        name: {{ . }}
+      autoPromotionEnabled: true
+    {{- end }}
+{{- end }}

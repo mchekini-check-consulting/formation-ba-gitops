@@ -1,0 +1,56 @@
+# Pipelines Kargo : un Project par dépôt GitHub, une Stage par environnement.
+# Déployé par l'Application kargo-pipelines (business/kargo-pipelines.yaml).
+#
+# Une promotion écrit le tag de chaque composant dans helm.yaml du dépôt
+# (applications.<index>.tag.<env>), pousse sur main, puis synchronise
+# l'Application ArgoCD <env>-<dépôt>.
+
+# Environnements, dans l'ordre de promotion. Le premier reçoit les images du
+# Warehouse, chacun des suivants reçoit le Freight validé par le précédent.
+# Ajouter un environnement ici ET dans business/applicationset.yaml.
+envs:
+  - dev
+
+# Environnements promus automatiquement dès qu'une nouvelle image arrive.
+# Les autres : promotion par clic dans l'UI Kargo.
+autoPromote:
+  - dev
+
+github: https://github.com/mchekini-check-consulting
+registry: 205493924920.dkr.ecr.eu-west-3.amazonaws.com
+branch: main
+
+# Images retenues : tags = sha court du commit (7 caractères, écrit par la CI).
+warehouse:
+  interval: 5m
+  allowTagsRegexes:
+    - ^[0-9a-f]{7}$
+  discoveryLimit: 10
+
+# Dépôts métier. index = position du composant dans la liste applications de
+# son helm.yaml (0 = premier). NE PAS réordonner applications dans helm.yaml
+# sans mettre à jour l'index ici : Kargo écrirait le tag d'un autre composant.
+projects:
+  - name: formation-ba-quali-formation
+    components:
+      - name: backend
+        index: 0
+      - name: frontend
+        index: 1
+  # Pilote d'abord ; les autres dépôts ensuite :
+  # - name: formation-ba-assurance-iard
+  #   components:
+  #     - {name: backend, index: 0}
+  #     - {name: frontend, index: 1}
+  # - name: formation-ba-compte-unique
+  #   components:
+  #     - {name: backend, index: 0}
+  #     - {name: frontend, index: 1}
+  # - name: formation-ba-gestion-financiere
+  #   components:
+  #     - {name: backend, index: 0}
+  #     - {name: frontend, index: 1}
+  # - name: formation-ba-scpi-invest
+  #   components:
+  #     - {name: backend, index: 0}
+  #     - {name: frontend, index: 1}

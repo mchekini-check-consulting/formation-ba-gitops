@@ -34,3 +34,9 @@ tools:
   cert-manager:
     repo: https://charts.jetstack.io
     chart: cert-manager
+
+  # Promotion des images dev -> qualif -> preprod -> prod (pilote ArgoCD).
+  # Chart publié uniquement en OCI (sync-charts.sh gère oci://)
+  kargo:
+    repo: oci://ghcr.io/akuity/kargo-charts
+    chart: kargo

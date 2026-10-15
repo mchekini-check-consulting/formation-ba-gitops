@@ -1,0 +1,15 @@
+# Généré par scripts/sync-crds.sh kargo 1.12.4 - NE PAS MODIFIER
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - clusterconfigs.kargo.akuity.io.yml
+  - clusterpromotiontasks.kargo.akuity.io.yml
+  - freights.kargo.akuity.io.yml
+  - projectconfigs.kargo.akuity.io.yml
+  - projects.kargo.akuity.io.yml
+  - promotionrequests.kargo.akuity.io.yml
+  - promotions.kargo.akuity.io.yml
+  - promotiontasks.kargo.akuity.io.yml
+  - stages.kargo.akuity.io.yml
+  - targets.kargo.akuity.io.yml
+  - warehouses.kargo.akuity.io.yml

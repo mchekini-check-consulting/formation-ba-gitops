@@ -1,5 +1,7 @@
 # Écrit le sha des images construites dans helm.yaml (tag.dev uniquement) et pousse
-# le commit avec GITHUB_TOKEN (ne relance pas la CI). qualif/prod : promotion manuelle par PR.
+# le commit avec GITHUB_TOKEN (ne relance pas la CI).
+# Désactivé par défaut dans ci.yaml (vars.CI_UPDATE_TAG) : Kargo écrit tag.dev et
+# promeut qualif/preprod/prod. Conservé pour un retour arrière ; jamais les deux.
 # Prérequis : checkout + permissions contents: write sur le job.
 name: update-tag
 description: Met à jour tag.dev dans helm.yaml

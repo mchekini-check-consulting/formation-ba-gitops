@@ -3,7 +3,8 @@
 #   - lire que le dépôt gitops (chart) et son propre dépôt (helm.yaml)
 #   - déployer que dans ses namespaces <env>-<projet>, sur n'importe quel cluster déclaré
 #   - créer que les ressources du chart (+ son namespace, via CreateNamespace)
-# Nouveau projet = un bloc ici + une ligne dans applicationset.yaml.
+# Nouveau projet = un bloc ici + une ligne dans applicationset.yaml (+ kargo-pipelines/values.yaml).
+# Synchronisé par l'Application business-root (platform-gitops) : un commit suffit.
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject
 metadata:
