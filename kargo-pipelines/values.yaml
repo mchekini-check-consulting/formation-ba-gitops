@@ -37,26 +37,23 @@ warehouse:
 #     qualif: ""
 # Un tag sur une ligne ({dev: ..., qualif: ...}) est corrompu à la première promotion.
 projects:
+  - name: formation-ba-assurance-iard
+    components:
+      - {name: backend, index: 0}
+      - {name: frontend, index: 1}
+  - name: formation-ba-compte-unique
+    components:
+      - {name: backend, index: 0}
+      - {name: frontend, index: 1}
+  - name: formation-ba-gestion-financiere
+    components:
+      - {name: backend, index: 0}
+      - {name: frontend, index: 1}
   - name: formation-ba-quali-formation
     components:
-      - name: backend
-        index: 0
-      - name: frontend
-        index: 1
-  # Pilote d'abord ; les autres dépôts ensuite :
-  # - name: formation-ba-assurance-iard
-  #   components:
-  #     - {name: backend, index: 0}
-  #     - {name: frontend, index: 1}
-  # - name: formation-ba-compte-unique
-  #   components:
-  #     - {name: backend, index: 0}
-  #     - {name: frontend, index: 1}
-  # - name: formation-ba-gestion-financiere
-  #   components:
-  #     - {name: backend, index: 0}
-  #     - {name: frontend, index: 1}
-  # - name: formation-ba-scpi-invest
-  #   components:
-  #     - {name: backend, index: 0}
-  #     - {name: frontend, index: 1}
+      - {name: backend, index: 0}
+      - {name: frontend, index: 1}
+  - name: formation-ba-scpi-invest
+    components:
+      - {name: backend, index: 0}
+      - {name: frontend, index: 1}
