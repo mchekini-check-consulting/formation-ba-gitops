@@ -40,8 +40,10 @@ spec:
             path: ./repo/helm.yaml
             updates:
               {{- range $c := $p.components }}
+              # quote() : sinon un sha tout en chiffres (7616898) est converti en
+              # nombre par Kargo et écrit 7.616898e+06
               - key: applications.{{ $c.index }}.tag.{{ $env }}
-                value: '{{ include "kp.expr" (printf "imageFrom(%q).Tag" (include "kp.image" (dict "root" $ "project" $p.name "component" $c.name))) }}'
+                value: '{{ include "kp.expr" (printf "quote(imageFrom(%q).Tag)" (include "kp.image" (dict "root" $ "project" $p.name "component" $c.name))) }}'
               {{- end }}
         - uses: git-commit
           config:
