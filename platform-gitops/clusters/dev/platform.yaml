@@ -61,4 +61,4 @@ tools:
   keycloak:
     version: 7.1.9     # chart keycloakx, Keycloak 26.5.5
   keycloak-config:
-    version: 0.1.0     # chart maison chart-base/keycloak-config
+    version: 0.2.0     # chart maison chart-base/keycloak-config

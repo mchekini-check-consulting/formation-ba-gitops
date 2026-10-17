@@ -8,3 +8,10 @@ ingress:
     - name: sonarqube.dev.check-consulting.net
       path: /
       pathType: Prefix
+
+# SAML : URL publique (callback https://sonarqube.dev.check-consulting.net/oauth2/callback/saml)
+# et realm platform de Keycloak
+sonarProperties:
+  sonar.core.serverBaseURL: https://sonarqube.dev.check-consulting.net
+  sonar.auth.saml.providerId: https://keycloak.dev.check-consulting.net/realms/platform
+  sonar.auth.saml.loginUrl: https://keycloak.dev.check-consulting.net/realms/platform/protocol/saml

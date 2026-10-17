@@ -1,0 +1,116 @@
+{{- /* Publie le certificat de signature d'un realm dans un Secret d'un autre
+       namespace (ex. SonarQube SAML : certificat de l'IdP). Hook PostSync : après
+       l'import (realm et clés présents). Le certificat est lu sur l'endpoint public
+       JWKS du realm ; le Secret est créé ou mis à jour (rotation des clés).
+       RBAC : un Role par namespace cible, limité au Secret (create : non restreignable). */}}
+{{- $targets := include "kc.idpCertificateSecrets" . | fromYamlArray }}
+{{- if $targets }}
+{{- $name := printf "%s-idp-cert" (include "kc.fullname" .) }}
+{{- $hook := dict "argocd.argoproj.io/hook" "PostSync" "argocd.argoproj.io/hook-delete-policy" "BeforeHookCreation,HookSucceeded" }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "kc.labels" . | nindent 4 }}
+  annotations:
+    {{- toYaml $hook | nindent 4 }}
+    argocd.argoproj.io/sync-wave: "-1"
+{{- range $t := $targets }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ $name }}-{{ $t.name }}
+  namespace: {{ $t.namespace }}
+  labels:
+    {{- include "kc.labels" $ | nindent 4 }}
+  annotations:
+    {{- toYaml $hook | nindent 4 }}
+    argocd.argoproj.io/sync-wave: "-1"
+rules:
+  - apiGroups: [""]
+    resources: [secrets]
+    resourceNames: [{{ $t.name }}]
+    verbs: [get, patch]
+  - apiGroups: [""]
+    resources: [secrets]
+    verbs: [create]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ $name }}-{{ $t.name }}
+  namespace: {{ $t.namespace }}
+  labels:
+    {{- include "kc.labels" $ | nindent 4 }}
+  annotations:
+    {{- toYaml $hook | nindent 4 }}
+    argocd.argoproj.io/sync-wave: "-1"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ $name }}-{{ $t.name }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ $name }}
+    namespace: {{ $.Release.Namespace }}
+{{- end }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "kc.labels" . | nindent 4 }}
+  annotations:
+    {{- toYaml $hook | nindent 4 }}
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  backoffLimit: 2
+  activeDeadlineSeconds: 600
+  template:
+    metadata:
+      labels:
+        {{- include "kc.labels" . | nindent 8 }}
+        app.kubernetes.io/component: idp-certificate
+    spec:
+      serviceAccountName: {{ $name }}
+      restartPolicy: Never
+      securityContext:
+        runAsUser: 65534
+        runAsGroup: 65534
+        runAsNonRoot: true
+      containers:
+        - name: publish
+          image: {{ .Values.secretGenerator.image | quote }}
+          env:
+            - name: KEYCLOAK_URL
+              value: {{ .Values.keycloak.url | quote }}
+            # "realm:namespace:secret" séparés par des espaces
+            - name: TARGETS
+              value: {{ range $i, $t := $targets }}{{ if $i }} {{ end }}{{ $t.realm }}:{{ $t.namespace }}:{{ $t.name }}{{ end }}
+            - name: HOME
+              value: /tmp            # cache kubectl
+          command:
+            - sh
+            - -ec
+            - |
+              for entry in $TARGETS; do
+                REALM="${entry%%:*}"; rest="${entry#*:}"; NS="${rest%%:*}"; SECRET="${rest#*:}"
+                # Clé RS256 active du realm (celle qui signe les réponses SAML)
+                until CERT="$(curl -fsS "$KEYCLOAK_URL/realms/$REALM/protocol/openid-connect/certs" \
+                    | jq -er '[.keys[] | select(.use == "sig" and .alg == "RS256")][0].x5c[0]')"; do
+                  echo "Realm $REALM indisponible, nouvel essai dans 10 s"; sleep 10
+                done
+                kubectl -n "$NS" create secret generic "$SECRET" --from-literal=certificate="$CERT" \
+                  --dry-run=client -o yaml | kubectl apply -f -
+                echo "Certificat du realm $REALM publié dans $NS/$SECRET"
+              done
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 128Mi
+{{- end }}

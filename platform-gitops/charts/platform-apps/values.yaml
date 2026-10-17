@@ -80,12 +80,13 @@ tools:
     syncWave: "20"
     crds: false
     finalizer: false
-  # Analyse de code (quality gate des PR). Wave 30 : après sa base.
+  # Analyse de code (quality gate des PR). Wave 40 : après sa base et après
+  # keycloak-config (wave 35), qui publie le certificat SAML (Secret sonarqube-saml-idp).
   sonarqube:
     enabled: true
     version: ""
     namespace: sonarqube
-    syncWave: "30"
+    syncWave: "40"
     crds: false
   # Base interne de CloudBeaver (comptes, équipes, droits d'accès aux connexions).
   # Wave 20 : après l'opérateur CloudNativePG ; finalizer: false : la base survit
