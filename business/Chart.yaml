@@ -1,0 +1,5 @@
+apiVersion: v2
+name: business
+description: Projets métier formation-ba-* (AppProjects, ApplicationSet, Application kargo-pipelines)
+type: application
+version: 0.1.0

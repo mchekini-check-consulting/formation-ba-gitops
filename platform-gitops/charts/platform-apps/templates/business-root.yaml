@@ -1,5 +1,5 @@
 {{- /* Application business-root : déploiement des projets métier, géré par Git.
-       Synchronise le dossier business/ de formation-ba-gitops (AppProjects,
+       Synchronise le chart business/ de formation-ba-gitops (AppProjects,
        ApplicationSet formation-ba, pipelines Kargo), autrefois appliqué avec kubectl.
        Sécurités :
          - prune: false  : un objet retiré de Git n'est pas supprimé du cluster

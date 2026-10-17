@@ -27,9 +27,11 @@ metadata:
   namespace: {{ .name }}
 spec:
   promotionPolicies:
-    {{- range $.Values.autoPromote }}
+    {{- range $.Values.envs }}
+    {{- if .autoPromote }}
     - stageSelector:
-        name: {{ . }}
+        name: {{ .name }}
       autoPromotionEnabled: true
+    {{- end }}
     {{- end }}
 {{- end }}

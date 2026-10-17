@@ -1,15 +1,15 @@
 {{- /* Par dépôt et par environnement : une Stage.
        Promotion : clone de main -> tag de chaque composant dans helm.yaml
-       (applications.<index>.tag.<env>) -> commit -> push sur main -> sync de
-       l'Application ArgoCD <env>-<dépôt> (annotation kargo.akuity.io/authorized-stage
-       posée par l'ApplicationSet). */}}
+       (applications.<index>.tag.<env>, index = position dans components) -> commit
+       -> push sur main -> sync de l'Application ArgoCD <env>-<dépôt> (annotation
+       kargo.akuity.io/authorized-stage posée par l'ApplicationSet). */}}
 {{- range $p := .Values.projects }}
 {{- range $i, $env := $.Values.envs }}
 ---
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
 metadata:
-  name: {{ $env }}
+  name: {{ $env.name }}
   namespace: {{ $p.name }}
 spec:
   requestedFreight:
@@ -21,7 +21,7 @@ spec:
         direct: true
         {{- else }}
         stages:
-          - {{ index $.Values.envs (sub $i 1) }}
+          - {{ (index $.Values.envs (sub $i 1)).name }}
         {{- end }}
   promotionTemplate:
     spec:
@@ -39,16 +39,16 @@ spec:
           config:
             path: ./repo/helm.yaml
             updates:
-              {{- range $c := $p.components }}
+              {{- range $idx, $c := $p.components }}
               # quote() : sinon un sha tout en chiffres (7616898) est converti en
               # nombre par Kargo et écrit 7.616898e+06
-              - key: applications.{{ $c.index }}.tag.{{ $env }}
-                value: '{{ include "kp.expr" (printf "quote(imageFrom(%q).Tag)" (include "kp.image" (dict "root" $ "project" $p.name "component" $c.name))) }}'
+              - key: applications.{{ $idx }}.tag.{{ $env.name }}
+                value: '{{ include "kp.expr" (printf "quote(imageFrom(%q).Tag)" (include "kp.image" (dict "root" $ "project" $p.name "component" $c))) }}'
               {{- end }}
         - uses: git-commit
           config:
             path: ./repo
-            message: 'promote({{ $env }}):{{ range $c := $p.components }} {{ $c.name }}={{ include "kp.expr" (printf "imageFrom(%q).Tag" (include "kp.image" (dict "root" $ "project" $p.name "component" $c.name))) }}{{ end }}'
+            message: 'promote({{ $env.name }}):{{ range $c := $p.components }} {{ $c }}={{ include "kp.expr" (printf "imageFrom(%q).Tag" (include "kp.image" (dict "root" $ "project" $p.name "component" $c))) }}{{ end }}'
         - uses: git-push
           config:
             path: ./repo
@@ -56,6 +56,6 @@ spec:
         - uses: argocd-update
           config:
             apps:
-              - name: {{ $env }}-{{ $p.name }}
+              - name: {{ $env.name }}-{{ $p.name }}
 {{- end }}
 {{- end }}

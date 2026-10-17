@@ -13,7 +13,7 @@ spec:
   subscriptions:
     {{- range $c := $p.components }}
     - image:
-        repoURL: {{ include "kp.image" (dict "root" $ "project" $p.name "component" $c.name) }}
+        repoURL: {{ include "kp.image" (dict "root" $ "project" $p.name "component" $c) }}
         imageSelectionStrategy: NewestBuild
         allowTagsRegexes:
           {{- toYaml $.Values.warehouse.allowTagsRegexes | nindent 10 }}
