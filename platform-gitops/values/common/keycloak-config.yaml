@@ -1,0 +1,81 @@
+# Configuration Keycloak as code (chart maison chart-base/keycloak-config) :
+# realms, un client par outil avec ses rôles, groupes = composition de rôles.
+# Utilisateurs (et leurs groupes) : values/<env>/keycloak-config.yaml.
+# Appliqué par keycloak-config-cli à chaque modification (Job nommé par hash).
+#
+# Ajouter un outil = un bloc dans realms.platform.clients + ses rôles dans les groupes.
+# Retirer un client, un rôle ou un groupe d'ici le supprime de Keycloak.
+realms:
+  # Realm unique des outils de la plateforme : une session = SSO sur tous les outils
+  platform:
+    displayName: Plateforme formation-ba
+    clients:
+      # Kargo : client public (PKCE). Rôles lus dans le claim "roles".
+      # /login : interface web ; localhost : CLI kargo login --sso
+      kargo:
+        name: Kargo
+        host: kargo
+        public: true
+        redirectPaths: [/login]
+        extraRedirectUris:
+          - http://localhost/auth/callback
+        roles: [admin, promoter, viewer]
+      # ArgoCD : client confidentiel, secret dans keycloak-client-platform-argocd
+      # (généré). /auth/callback : interface web ; localhost:8085 : CLI argocd login --sso
+      argocd:
+        name: Argo CD
+        host: argocd
+        redirectPaths: [/auth/callback]
+        extraRedirectUris:
+          - http://localhost:8085/auth/callback
+        roles: [admin, readonly]
+      # SonarQube Community : SAML. clientId = "Application ID" côté SonarQube.
+      # Mappers du nom, de l'e-mail et des groupes : finalisés au branchement de SonarQube.
+      sonarqube:
+        name: SonarQube
+        protocol: saml
+        host: sonarqube
+        redirectPaths: [/oauth2/callback/saml]
+        roles: [admin, user]
+        attributes:
+          saml.client.signature: "false"       # SonarQube ne signe pas ses requêtes
+          saml_name_id_format: username
+          saml.force.name.id.format: "true"
+        protocolMappers:
+          - name: login
+            protocol: saml
+            protocolMapper: saml-user-property-mapper
+            config:
+              user.attribute: username
+              attribute.name: login
+              attribute.nameformat: Basic
+          - name: email
+            protocol: saml
+            protocolMapper: saml-user-property-mapper
+            config:
+              user.attribute: email
+              attribute.name: email
+              attribute.nameformat: Basic
+
+    # Groupes : on attache les utilisateurs aux groupes, jamais directement aux rôles
+    groups:
+      platform-admins:
+        clientRoles:
+          kargo: [admin]
+          argocd: [admin]
+          sonarqube: [admin]
+      ba:
+        clientRoles:
+          kargo: [promoter]
+          argocd: [readonly]
+          sonarqube: [user]
+      dev-team:
+        clientRoles:
+          kargo: [viewer]
+          argocd: [readonly]
+          sonarqube: [user]
+
+  # Realm applicatif : accueillera les clients des projets métier (formation-ba-*).
+  # Vide pour l'instant (réglages par défaut uniquement).
+  formation-ba:
+    displayName: Applications formation-ba

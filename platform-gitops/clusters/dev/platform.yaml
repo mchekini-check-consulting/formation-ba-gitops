@@ -54,3 +54,11 @@ tools:
     version: 0.1.0     # chart maison chart-base/cloudbeaver
   kargo:
     version: 1.12.4
+  keycloak-db:
+    version: 0.9.0     # chart cnpg-cluster
+  # keycloak et keycloak-config se montent ensemble : le tag de keycloak-config-cli
+  # (chart-base/keycloak-config) suit la version de Keycloak (26.5.5 ici)
+  keycloak:
+    version: 7.1.9     # chart keycloakx, Keycloak 26.5.5
+  keycloak-config:
+    version: 0.1.0     # chart maison chart-base/keycloak-config
