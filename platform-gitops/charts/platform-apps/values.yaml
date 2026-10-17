@@ -109,6 +109,34 @@ tools:
     syncWave: "40"
     crds: false
     finalizer: false
+  # Base PostgreSQL de Keycloak (ressource Cluster CloudNativePG). Wave 20 : après
+  # l'opérateur ; finalizer: false : la base survit à la suppression de l'Application.
+  keycloak-db:
+    enabled: true
+    version: ""
+    chart: cnpg-cluster
+    namespace: keycloak
+    syncWave: "20"
+    crds: false
+    finalizer: false
+  # SSO des outils de la plateforme (chart keycloakx, image officielle).
+  # Wave 30 : après sa base.
+  keycloak:
+    enabled: true
+    version: ""
+    chart: keycloakx
+    namespace: keycloak
+    syncWave: "30"
+    crds: false
+  # Realms, clients (un par outil), rôles, groupes, utilisateurs : chart maison,
+  # appliqué par keycloak-config-cli. Wave 35 : après Keycloak, avant les outils
+  # qui s'y connectent (wave 40).
+  keycloak-config:
+    enabled: true
+    version: ""
+    namespace: keycloak
+    syncWave: "35"
+    crds: false
   # Promotion des images dev -> qualif -> preprod -> prod (Kargo). Pipelines :
   # formation-ba-gitops/business/kargo-pipelines, via business-root (wave 50).
   # Wave 40 : après cert-manager (certificats autosignés de ses webhooks).

@@ -35,6 +35,15 @@ tools:
     repo: https://charts.jetstack.io
     chart: cert-manager
 
+  # Keycloak (SSO des outils de la plateforme), image officielle quay.io/keycloak.
+  # Realms, clients, groupes, utilisateurs : chart maison chart-base/keycloak-config.
+  keycloakx:
+    repo: https://codecentric.github.io/helm-charts
+    chart: keycloakx
+
+  # keycloak-config : chart maison écrit directement dans chart-base/keycloak-config/<version>
+  # (realms générés depuis les values, appliqués par keycloak-config-cli).
+
   # Promotion des images dev -> qualif -> preprod -> prod (pilote ArgoCD).
   # Chart publié uniquement en OCI (sync-charts.sh gère oci://)
   kargo:
