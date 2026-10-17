@@ -6,6 +6,15 @@ configs:
   params:
     # TLS terminé par Traefik
     server.insecure: true
+  # Droits des utilisateurs SSO (Keycloak, realm platform, client argocd) : rôles du
+  # client reçus dans le claim "roles" (groupes Keycloak : values/common/keycloak-config.yaml).
+  # Sans rôle : aucun accès. Le compte admin local reste actif (secours du SSO).
+  rbac:
+    scopes: "[roles]"
+    policy.default: ""
+    policy.csv: |
+      g, admin, role:admin
+      g, readonly, role:readonly
   cm:
     # Sans ce health check, une Application est toujours "Healthy" pour l'app
     # racine : les sync-waves (crds -10 -> outils 0) n'attendraient rien.

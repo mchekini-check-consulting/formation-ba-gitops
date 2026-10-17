@@ -10,22 +10,24 @@ realms:
   platform:
     displayName: Plateforme formation-ba
     clients:
-      # Kargo : client public (PKCE). Rôles lus dans le claim "roles".
-      # /login : interface web ; localhost : CLI kargo login --sso
+      # Kargo : client public (PKCE). Rôles lus dans le claim "roles" (values/*/kargo.yaml,
+      # business/kargo-pipelines). /login : interface web ; localhost (port aléatoire) :
+      # CLI kargo login --sso
       kargo:
         name: Kargo
         host: kargo
         public: true
         redirectPaths: [/login]
         extraRedirectUris:
-          - http://localhost/auth/callback
+          - http://localhost:*
         roles: [admin, promoter, viewer]
-      # ArgoCD : client confidentiel, secret dans keycloak-client-platform-argocd
-      # (généré). /auth/callback : interface web ; localhost:8085 : CLI argocd login --sso
+      # ArgoCD : client public (PKCE, enablePKCEAuthentication), pas de secret à partager.
+      # /pkce/verify et /auth/callback : interface web ; localhost:8085 : CLI argocd login --sso
       argocd:
         name: Argo CD
         host: argocd
-        redirectPaths: [/auth/callback]
+        public: true
+        redirectPaths: [/auth/callback, /pkce/verify]
         extraRedirectUris:
           - http://localhost:8085/auth/callback
         roles: [admin, readonly]
