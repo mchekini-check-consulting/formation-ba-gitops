@@ -8,7 +8,7 @@ baseDomain: dev.check-consulting.net
 # groups : groupes de values/common/keycloak-config.yaml (vérifiés au rendu).
 realms:
   platform:
-    users: {}
+    users:
       # jdupont:
       #   email: jean.dupont@check-consulting.net
       #   firstName: Jean
