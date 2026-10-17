@@ -14,6 +14,13 @@ github: ""
 branch: main
 registry: ""
 
+# SSO (Keycloak, realm platform) : claims qui donnent le Role kargo-promoter dans
+# chaque Project. Rôle "promoter" du client kargo, porté par le groupe Keycloak ba
+# (platform-gitops/values/common/keycloak-config.yaml). null : aucun.
+sso:
+  promoterClaims:
+    roles: [promoter]
+
 # Images retenues : tags = sha court du commit (7 caractères, écrit par la CI).
 warehouse:
   interval: 5m

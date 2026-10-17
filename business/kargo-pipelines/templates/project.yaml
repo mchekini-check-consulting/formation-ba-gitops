@@ -1,6 +1,6 @@
 {{- /* Par dépôt : namespace du Project (créé ici pour l'ordre de synchronisation
-       ArgoCD, puis adopté par Kargo grâce au label), Project et ProjectConfig. */}}
-{{- range .Values.projects }}
+       ArgoCD, puis adopté par Kargo grâce au label), Project, ProjectConfig et rôle SSO promoter. */}}
+{{- range $p := .Values.projects }}
 ---
 apiVersion: v1
 kind: Namespace
@@ -34,4 +34,30 @@ spec:
       autoPromotionEnabled: true
     {{- end }}
     {{- end }}
+{{- with $.Values.sso.promoterClaims }}
+---
+# SSO : utilisateurs dont le jeton porte ces claims = Role kargo-promoter de ce
+# Project (créé par Kargo) : promouvoir, sans modifier le pipeline.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: sso-promoter
+  namespace: {{ $p.name }}
+  annotations:
+    rbac.kargo.akuity.io/claims: {{ toJson . | quote }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: sso-promoter
+  namespace: {{ $p.name }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: kargo-promoter
+subjects:
+  - kind: ServiceAccount
+    name: sso-promoter
+    namespace: {{ $p.name }}
+{{- end }}
 {{- end }}

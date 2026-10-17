@@ -29,6 +29,9 @@ spec:
     - { group: kargo.akuity.io, kind: ProjectConfig }
     - { group: kargo.akuity.io, kind: Warehouse }
     - { group: kargo.akuity.io, kind: Stage }
+    # SSO : ServiceAccount annoté (claims) + RoleBinding vers le Role kargo-promoter
+    - { group: "", kind: ServiceAccount }
+    - { group: rbac.authorization.k8s.io, kind: RoleBinding }
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application

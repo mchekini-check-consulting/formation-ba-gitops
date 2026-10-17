@@ -18,16 +18,34 @@ global:
     namespace: kargo-shared-resources
 
 api:
-  # Compte admin local (SSO plus tard) : hash et clé dans un Secret créé à la main,
-  # jamais dans Git (clés ADMIN_ACCOUNT_PASSWORD_HASH, ADMIN_ACCOUNT_TOKEN_SIGNING_KEY)
+  # Compte admin local, conservé en secours du SSO : hash et clé dans un Secret créé
+  # à la main, jamais dans Git (clés ADMIN_ACCOUNT_PASSWORD_HASH, ADMIN_ACCOUNT_TOKEN_SIGNING_KEY)
   secret:
     name: kargo-admin
   adminAccount:
     enabled: true
     tokenTTL: 24h
-  # SSO GitHub (plus tard) : OAuth App + Dex, callback https://<api.host>/dex/callback
+  # SSO Keycloak (realm platform, client public kargo, PKCE) ; issuerURL : values/<env>.
+  # Droits selon les rôles du client kargo, reçus dans le claim "roles"
+  # (groupes Keycloak : values/common/keycloak-config.yaml) :
+  #   admin    -> admin de tout Kargo
+  #   viewer   -> lecture seule de tout Kargo
+  #   promoter -> liste des Projects ici, + Role kargo-promoter dans chaque Project
+  #               (business/kargo-pipelines, templates/project.yaml)
   oidc:
-    enabled: false
+    enabled: true
+    clientID: kargo
+    additionalScopes: []       # Keycloak n'a pas de scope "groups" (défaut du chart)
+    usernameClaim: email
+    admins:
+      claims:
+        roles: [admin]
+    viewers:
+      claims:
+        roles: [viewer]
+    users:
+      claims:
+        roles: [promoter]
   # TLS terminé par Traefik (wildcard *.<env>.check-consulting.net)
   tls:
     enabled: false
