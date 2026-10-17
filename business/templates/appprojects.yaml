@@ -1,0 +1,29 @@
+{{- /* Un AppProject ArgoCD par projet (values.yaml : projects).
+       Chaque projet ne peut :
+         - lire que le dépôt gitops (chart) et son propre dépôt (helm.yaml)
+         - déployer que dans ses namespaces <env>-<projet>, sur n'importe quel cluster déclaré
+         - créer que les ressources du chart (+ son namespace, via CreateNamespace) */}}
+{{- range .Values.projects }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: {{ .name }}
+  namespace: argocd
+spec:
+  description: {{ $.Values.github }}/{{ .name }}
+  sourceRepos:
+    - {{ $.Values.gitops.repoURL }}
+    - {{ $.Values.github }}/{{ .name }}.git
+  destinations:
+    - name: "*"
+      namespace: "*-{{ .name }}"
+  clusterResourceWhitelist:
+    - { group: "", kind: Namespace }   # CreateNamespace=true
+  namespaceResourceWhitelist:
+    - { group: apps, kind: Deployment }
+    - { group: "", kind: Service }
+    - { group: networking.k8s.io, kind: Ingress }
+    - { group: traefik.io, kind: Middleware }
+    - { group: cert-manager.io, kind: Certificate }   # TLS *.<projet>.<env>.<domaine>
+{{- end }}

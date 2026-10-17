@@ -1,7 +1,10 @@
-# Pipelines Kargo des dépôts formation-ba-* (chart kargo-pipelines/ de ce dépôt).
-# Synchronisé par business-root. Prérequis : Kargo installé (tools.kargo, wave 40).
-#
-# AppProject dédié : uniquement des ressources Kargo et les namespaces des Projects.
+{{- /* Pipelines Kargo des projets (chart business/kargo-pipelines/), avec les
+       envs et projects de values.yaml. Prérequis : Kargo installé (tools.kargo, wave 40).
+       Application séparée de business-root :
+         - AppProject dédié : uniquement des ressources Kargo et les namespaces des Projects
+         - prune: true      : retirer un env ou un projet supprime ses Stages/Warehouse
+                              (business-root, lui, ne supprime jamais rien)
+         - une erreur Kargo ne bloque pas la synchronisation de business-root */}}
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject
 metadata:
@@ -12,7 +15,7 @@ metadata:
 spec:
   description: Pipelines Kargo (Project, Warehouse, Stages) des dépôts formation-ba-*
   sourceRepos:
-    - https://github.com/mchekini-check-consulting/formation-ba-gitops.git
+    - {{ .Values.gitops.repoURL }}
   # namespace "*" : l'Application n'a pas de namespace par défaut (chaque ressource
   # Kargo porte le sien). Le périmètre est limité par les whitelists ci-dessous
   # (ressources Kargo et namespaces uniquement) et par sourceRepos.
@@ -35,9 +38,12 @@ metadata:
 spec:
   project: kargo-pipelines
   source:
-    repoURL: https://github.com/mchekini-check-consulting/formation-ba-gitops.git
-    targetRevision: main
-    path: kargo-pipelines
+    repoURL: {{ .Values.gitops.repoURL }}
+    targetRevision: {{ .Values.gitops.targetRevision }}
+    path: business/kargo-pipelines
+    helm:
+      valuesObject:
+        {{- toYaml (pick .Values "github" "branch" "registry" "envs" "projects") | nindent 8 }}
   destination:
     name: in-cluster
   syncPolicy:

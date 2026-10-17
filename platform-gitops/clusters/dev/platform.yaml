@@ -21,10 +21,11 @@ chartBase:
   targetRevision: main
   path: chart-base
 
-# Projets métier (AppProjects, ApplicationSet formation-ba, pipelines Kargo) :
+# Projets métier (chart business/ : AppProjects, ApplicationSet formation-ba, pipelines Kargo),
+# environnements et projets déclarés dans business/values.yaml :
 # Application business-root, dernière wave (après les outils de la plateforme)
 businessRoot:
-  enabled: true  # true dans le commit qui déplace appprojects.yaml et applicationset.yaml dans business/
+  enabled: true
   repoURL: https://github.com/mchekini-check-consulting/formation-ba-gitops.git
   targetRevision: main
   path: business

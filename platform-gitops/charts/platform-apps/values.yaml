@@ -110,7 +110,7 @@ tools:
     crds: false
     finalizer: false
   # Promotion des images dev -> qualif -> preprod -> prod (Kargo). Pipelines :
-  # formation-ba-gitops/kargo-pipelines, via business-root (wave 50).
+  # formation-ba-gitops/business/kargo-pipelines, via business-root (wave 50).
   # Wave 40 : après cert-manager (certificats autosignés de ses webhooks).
   # Lecture ECR : rôle IAM par Pod Identity sur kargo/kargo-controller (Terraform).
   kargo:

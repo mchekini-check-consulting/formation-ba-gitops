@@ -1,5 +1,5 @@
 # Values communes du chart kargo (promotion des images dev -> qualif -> preprod -> prod).
-# Pipelines (Projects, Warehouses, Stages) : formation-ba-gitops/kargo-pipelines,
+# Pipelines (Projects, Warehouses, Stages) : formation-ba-gitops/business/kargo-pipelines,
 # déployés par business-root.
 
 # CRDs : crd-base/kargo/<version> (Application crds-kargo, wave -10)

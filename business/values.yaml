@@ -1,0 +1,55 @@
+# SEUL endroit où déclarer les environnements et les projets métier.
+# Synchronisé par l'Application business-root (platform-gitops) : un commit suffit.
+# En découlent :
+#   - un AppProject ArgoCD par projet                  (templates/appprojects.yaml)
+#   - une Application <env>-<projet> par couple        (templates/applicationset.yaml)
+#   - le pipeline Kargo de chaque projet               (kargo-pipelines/, via templates/kargo-pipelines.yaml)
+
+# Dépôt de ce chart et du chart applicatif gitops-ba-formation/
+gitops:
+  repoURL: https://github.com/mchekini-check-consulting/formation-ba-gitops.git
+  targetRevision: main
+
+# Dépôts métier : <github>/<projet>.git, branche lue par ArgoCD et écrite par Kargo
+github: https://github.com/mchekini-check-consulting
+branch: main
+
+# Images : <registry>/<projet>/<composant>
+registry: 205493924920.dkr.ecr.eu-west-3.amazonaws.com
+
+# Environnements, dans l'ordre de promotion Kargo : le premier reçoit les images
+# du Warehouse, chacun des suivants le Freight validé par le précédent.
+#   cluster     : nom du cluster dans ArgoCD ("in-cluster" = celui d'ArgoCD)
+#   autoPromote : promu dès qu'une nouvelle image arrive ; sinon clic dans l'UI Kargo
+# Ajouter un environnement : seeder d'abord tag.<env> dans chaque helm.yaml
+# (le chart applicatif refuse un tag vide).
+envs:
+  - name: dev
+    cluster: in-cluster
+    autoPromote: true
+  # - name: qualif
+  #   cluster: qualif-cluster
+  # - name: preprod
+  #   cluster: preprod-cluster
+  # - name: prod
+  #   cluster: prod-cluster
+
+# Projets = dépôts GitHub avec un helm.yaml à leur racine.
+# components : dans l'ORDRE de la liste applications de helm.yaml (la position
+# est l'index où Kargo écrit le tag). Réordonner helm.yaml = réordonner ici.
+# Format exigé dans helm.yaml : tag en style bloc, une valeur par ligne, sans
+# commentaire en fin de ligne (Kargo remplace jusqu'à la fin de la ligne) :
+#   tag:
+#     dev: "abc1234"
+#     qualif: ""
+projects:
+  - name: formation-ba-assurance-iard
+    components: [backend, frontend]
+  - name: formation-ba-compte-unique
+    components: [backend, frontend]
+  - name: formation-ba-gestion-financiere
+    components: [backend, frontend]
+  - name: formation-ba-quali-formation
+    components: [backend, frontend]
+  - name: formation-ba-scpi-invest
+    components: [backend, frontend]
