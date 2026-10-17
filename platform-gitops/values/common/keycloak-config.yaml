@@ -31,18 +31,28 @@ realms:
         extraRedirectUris:
           - http://localhost:8085/auth/callback
         roles: [admin, readonly]
-      # SonarQube Community : SAML. clientId = "Application ID" côté SonarQube.
-      # Mappers du nom, de l'e-mail et des groupes : finalisés au branchement de SonarQube.
+      # SonarQube Community : SAML (values/*/sonarqube.yaml). clientId = "Application ID"
+      # côté SonarQube. Assertion : login, name, email, groups. Rôle admin -> groupe
+      # SonarQube sonar-administrators (groupes inconnus de SonarQube ignorés ; tout
+      # utilisateur connecté est dans sonar-users).
       sonarqube:
         name: SonarQube
         protocol: saml
         host: sonarqube
         redirectPaths: [/oauth2/callback/saml]
         roles: [admin, user]
+        # Certificat de signature du realm, lu par SonarQube (SONAR_AUTH_SAML_CERTIFICATE_SECURED)
+        idpCertificateSecret:
+          namespace: sonarqube
+          name: sonarqube-saml-idp
         attributes:
           saml.client.signature: "false"       # SonarQube ne signe pas ses requêtes
           saml_name_id_format: username
           saml.force.name.id.format: "true"
+        settings:
+          # Sans le scope role_list (attribut "Role" répété : refusé par SonarQube) ;
+          # rôles envoyés par le mapper groups ci-dessous
+          defaultClientScopes: []
         protocolMappers:
           - name: login
             protocol: saml
@@ -51,6 +61,14 @@ realms:
               user.attribute: username
               attribute.name: login
               attribute.nameformat: Basic
+          # Nom affiché : prénom (SAML n'a pas de mapper "nom complet")
+          - name: name
+            protocol: saml
+            protocolMapper: saml-user-property-mapper
+            config:
+              user.attribute: firstName
+              attribute.name: name
+              attribute.nameformat: Basic
           - name: email
             protocol: saml
             protocolMapper: saml-user-property-mapper
@@ -58,6 +76,21 @@ realms:
               user.attribute: email
               attribute.name: email
               attribute.nameformat: Basic
+          # Rôles de l'utilisateur dans un seul attribut multi-valeurs "groups"
+          - name: groups
+            protocol: saml
+            protocolMapper: saml-role-list-mapper
+            config:
+              attribute.name: groups
+              attribute.nameformat: Basic
+              single: "true"
+          # Renomme le rôle client sonarqube.admin en groupe SonarQube
+          - name: admin-to-sonar-administrators
+            protocol: saml
+            protocolMapper: saml-role-name-mapper
+            config:
+              role: sonarqube.admin
+              new.role.name: sonar-administrators
 
     # Groupes : on attache les utilisateurs aux groupes, jamais directement aux rôles
     groups:

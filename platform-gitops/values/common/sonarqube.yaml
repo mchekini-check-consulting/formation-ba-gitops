@@ -26,3 +26,27 @@ persistence:
 # Pod de test Helm (helm test) : inutile avec ArgoCD
 tests:
   enabled: false
+
+# SSO Keycloak en SAML (realm platform, client sonarqube : values/common/keycloak-config.yaml).
+# Réglages posés dans sonar.properties : en lecture seule dans l'interface.
+# URL de Keycloak et de SonarQube : values/<env>/sonarqube.yaml.
+# Groupes synchronisés à chaque connexion : rôle admin du client -> sonar-administrators.
+# Le compte admin local reste actif (secours du SSO).
+sonarProperties:
+  sonar.auth.saml.enabled: "true"
+  sonar.auth.saml.applicationId: sonarqube
+  sonar.auth.saml.providerName: Keycloak
+  sonar.auth.saml.user.login: login
+  sonar.auth.saml.user.name: name
+  sonar.auth.saml.user.email: email
+  sonar.auth.saml.group.name: groups
+
+# Certificat de signature du realm : Secret publié par keycloak-config (Job PostSync,
+# wave 35) ; d'où la wave 40 de SonarQube. Rotation des clés du realm : le Job met
+# le Secret à jour, redémarrer SonarQube pour le prendre en compte.
+env:
+  - name: SONAR_AUTH_SAML_CERTIFICATE_SECURED
+    valueFrom:
+      secretKeyRef:
+        name: sonarqube-saml-idp
+        key: certificate
