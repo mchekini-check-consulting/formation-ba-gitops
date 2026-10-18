@@ -44,6 +44,13 @@ tools:
   # keycloak-config : chart maison écrit directement dans chart-base/keycloak-config/<version>
   # (realms générés depuis les values, appliqués par keycloak-config-cli).
 
+  # sonarqube-config : chart maison écrit directement dans chart-base/sonarqube-config/<version>
+  # (groupes SonarQube et leurs permissions depuis la matrice d'accès, API SonarQube).
+
+  # Charts maison des projets métier (versions : business.charts de gitops/values.yaml) :
+  #   gitops-ba-formation : chart applicatif des dépôts formation-ba-* (helm.yaml)
+  #   kargo-pipelines     : Project, Warehouse, Stages Kargo de chaque dépôt
+
   # Promotion des images dev -> qualif -> preprod -> prod (pilote ArgoCD).
   # Chart publié uniquement en OCI (sync-charts.sh gère oci://)
   kargo:

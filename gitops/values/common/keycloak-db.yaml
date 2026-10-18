@@ -1,0 +1,14 @@
+# Base PostgreSQL de Keycloak : chart cnpg-cluster (ressource Cluster CloudNativePG).
+# L'opérateur crée :
+#   - le Service keycloak-db-rw (lecture/écriture)
+#   - le Secret keycloak-db-app (username, password, ...) lu par Keycloak
+#   - le Secret keycloak-db-superuser (postgres) : connexion admin depuis CloudBeaver
+fullnameOverride: keycloak-db
+
+cluster:
+  initdb:
+    database: keycloak
+    owner: keycloak
+  enableSuperuserAccess: true    # superuser postgres, utilisé par CloudBeaver
+  storage:
+    size: 2Gi        # StorageClass par défaut du cluster (gp3, addon EBS CSI)

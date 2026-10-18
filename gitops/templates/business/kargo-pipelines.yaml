@@ -1,0 +1,72 @@
+{{- /* Pipelines Kargo des projets (chart-base/<business.charts.pipelines>), avec les
+       envs et projects de values.yaml. Prérequis : Kargo installé (tools.kargo, wave 40).
+       Application séparée :
+         - AppProject dédié : uniquement des ressources Kargo et les namespaces des Projects
+         - prune: true      : retirer un env ou un projet supprime ses Stages/Warehouse
+                              (la racine, elle, ne supprime jamais les objets métier : Prune=false)
+         - une erreur Kargo ne bloque pas la synchronisation de la racine
+       Waves : AppProject 50, Application 51. */}}
+{{- with .Values.business }}
+{{- if .enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: kargo-pipelines
+  namespace: {{ $.Values.argocdNamespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "50"
+    argocd.argoproj.io/sync-options: Prune=false
+spec:
+  description: Pipelines Kargo (Project, Warehouse, Stages) des dépôts formation-ba-*
+  # Chart (chartBase) et matrice d'accès (gitops), souvent le même dépôt
+  sourceRepos:
+    {{- toYaml (list (required "chartBase.repoURL requis" $.Values.chartBase.repoURL) (required "gitops.repoURL requis" $.Values.gitops.repoURL) | uniq) | nindent 4 }}
+  # namespace "*" : l'Application n'a pas de namespace par défaut (chaque ressource
+  # Kargo porte le sien). Le périmètre est limité par les whitelists ci-dessous
+  # (ressources Kargo et namespaces uniquement) et par sourceRepos.
+  destinations:
+    - name: in-cluster
+      namespace: "*"
+  clusterResourceWhitelist:
+    - { group: "", kind: Namespace }                  # namespace du Project (adopté par Kargo)
+    - { group: kargo.akuity.io, kind: Project }
+  namespaceResourceWhitelist:
+    - { group: kargo.akuity.io, kind: ProjectConfig }
+    - { group: kargo.akuity.io, kind: Warehouse }
+    - { group: kargo.akuity.io, kind: Stage }
+    # SSO (matrice d'accès) : ServiceAccount annoté (claims) + RoleBinding vers un Role du Project
+    - { group: "", kind: ServiceAccount }
+    - { group: rbac.authorization.k8s.io, kind: RoleBinding }
+    - { group: rbac.authorization.k8s.io, kind: Role }        # projectRules (Role sur mesure)
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kargo-pipelines
+  namespace: {{ $.Values.argocdNamespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "51"
+    argocd.argoproj.io/sync-options: Prune=false
+spec:
+  project: kargo-pipelines
+  sources:
+    - repoURL: {{ $.Values.chartBase.repoURL }}
+      targetRevision: {{ $.Values.chartBase.targetRevision }}
+      path: {{ $.Values.chartBase.path }}/{{ required "business.charts.pipelines requis" .charts.pipelines }}
+      helm:
+        # Matrice d'accès de la plateforme (droits SSO dans chaque Project)
+        valueFiles:
+          - $values/{{ $.Values.gitops.path }}/values/common/access.yaml
+        valuesObject:
+          {{- toYaml (pick . "github" "branch" "registry" "envs" "projects") | nindent 10 }}
+    - repoURL: {{ $.Values.gitops.repoURL }}
+      targetRevision: {{ $.Values.gitops.targetRevision }}
+      ref: values
+  destination:
+    name: in-cluster
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+{{- end }}
+{{- end }}

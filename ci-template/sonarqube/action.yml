@@ -12,7 +12,7 @@ inputs:
     description: Global Analysis Token (secret d'organisation SONAR_TOKEN)
     required: true
   host-url:
-    description: SonarQube de la plateforme (platform-gitops/values/dev/sonarqube.yaml)
+    description: SonarQube de la plateforme (gitops/values/dev/sonarqube.yaml)
     default: https://sonarqube.dev.check-consulting.net
 
 runs:

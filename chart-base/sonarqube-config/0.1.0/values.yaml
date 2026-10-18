@@ -1,0 +1,30 @@
+# Groupes SonarQube as code : pour chaque rôle de access.tools.sonarqube.roles qui
+# porte un groupe (hors groupes intégrés), le Job crée le groupe et aligne ses
+# permissions globales sur la matrice. La connexion SAML y place ensuite les
+# utilisateurs (rôle Keycloak renommé en groupe, chart keycloak-config).
+# Un groupe retiré de la matrice n'est pas supprimé de SonarQube.
+
+# API SonarQube (Service du chart sonarqube, même namespace)
+sonarqube:
+  url: http://sonarqube-sonarqube:9000
+
+# Jeton d'un administrateur SonarQube, créé une fois à la main (jamais dans Git) :
+#   SonarQube > My Account > Security > Generate Tokens (type User Token), puis
+#   kubectl -n sonarqube create secret generic sonarqube-admin-token --from-literal=token=<jeton>
+# Sans ce Secret, le Job ne fait rien (et se termine sans erreur) ; après l'avoir créé :
+#   kubectl -n sonarqube delete job -l app.kubernetes.io/instance=sonarqube-config
+# (ArgoCD recrée le Job, qui applique la matrice).
+tokenSecret:
+  name: sonarqube-admin-token
+  key: token
+
+image: alpine/k8s:1.31.13                   # curl, jq, multi-arch (amd64, arm64)
+
+# Groupes intégrés : jamais créés ni modifiés par le Job (droits réglés dans l'interface)
+builtinGroups: [sonar-administrators, sonar-users]
+
+# Permissions globales gérées (édition Community)
+globalPermissions: [admin, gateadmin, profileadmin, provisioning, scan]
+
+# Matrice d'accès (gitops/values/common/access.yaml), valueFile commun
+access: {}

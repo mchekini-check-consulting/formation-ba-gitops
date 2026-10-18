@@ -41,9 +41,11 @@ sonarProperties:
   sonar.auth.saml.user.email: email
   sonar.auth.saml.group.name: groups
 
-# Certificat de signature du realm : Secret publié par keycloak-config (Job PostSync,
-# wave 35) ; d'où la wave 40 de SonarQube. Rotation des clés du realm : le Job met
-# le Secret à jour, redémarrer SonarQube pour le prendre en compte.
+# Certificat de la clé de signature fixée du realm platform (Certificate cert-manager du
+# chart keycloak-config), copié par keycloak-config (Job PostSync, wave 35) dans le Secret
+# sonarqube-saml-idp ; d'où la wave 40 de SonarQube. La clé ne change que sur rotation
+# volontaire : redémarrer alors SonarQube (kubectl -n sonarqube rollout restart sts/sonarqube-sonarqube).
+# Groupes et permissions SonarQube : matrice d'accès (values/common/access.yaml), chart sonarqube-config.
 env:
   - name: SONAR_AUTH_SAML_CERTIFICATE_SECURED
     valueFrom:

@@ -6,15 +6,10 @@ configs:
   params:
     # TLS terminé par Traefik
     server.insecure: true
-  # Droits des utilisateurs SSO (Keycloak, realm platform, client argocd) : rôles du
-  # client reçus dans le claim "roles" (groupes Keycloak : values/common/keycloak-config.yaml).
-  # Sans rôle : aucun accès. Le compte admin local reste actif (secours du SSO).
+  # Droits des utilisateurs SSO : ConfigMap argocd-rbac-cm générée depuis la matrice
+  # d'accès (extraObjects ci-dessous), pas par le chart.
   rbac:
-    scopes: "[roles]"
-    policy.default: ""
-    policy.csv: |
-      g, admin, role:admin
-      g, readonly, role:readonly
+    create: false
   cm:
     # Sans ce health check, une Application est toujours "Healthy" pour l'app
     # racine : les sync-waves (crds -10 -> outils 0) n'attendraient rien.
@@ -31,3 +26,33 @@ configs:
         end
       end
       return hs
+
+# argocd-rbac-cm depuis values/common/access.yaml (tools.argocd.roles) : rôles du client
+# argocd reçus dans le claim "roles". Sans rôle : aucun accès. Le compte admin local
+# reste actif (secours du SSO). Rechargée à chaud par argocd-server.
+extraObjects:
+  - |
+    {{- with .Values.access }}
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: argocd-rbac-cm
+      namespace: {{ $.Release.Namespace }}
+      labels:
+        app.kubernetes.io/name: argocd-rbac-cm
+        app.kubernetes.io/part-of: argocd     # requis : argocd-server ne lit que ces ConfigMaps
+    data:
+      scopes: "[roles]"
+      policy.default: ""
+      policy.csv: |
+        {{- range $role, $r := .tools.argocd.roles }}
+        {{- if $r.argocdRole }}
+        g, {{ $role }}, {{ $r.argocdRole }}
+        {{- else }}
+        {{- range $r.policies }}
+        p, role:sso-{{ $role }}, {{ . }}
+        {{- end }}
+        g, {{ $role }}, role:sso-{{ $role }}
+        {{- end }}
+        {{- end }}
+    {{- end }}

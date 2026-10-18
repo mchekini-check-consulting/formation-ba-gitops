@@ -1,0 +1,61 @@
+{{- /* Par dépôt et par environnement : une Stage.
+       Promotion : clone de main -> tag de chaque composant dans helm.yaml
+       (applications.<index>.tag.<env>, index = position dans components) -> commit
+       -> push sur main -> sync de l'Application ArgoCD <env>-<dépôt> (annotation
+       kargo.akuity.io/authorized-stage posée par l'ApplicationSet). */}}
+{{- range $p := .Values.projects }}
+{{- range $i, $env := $.Values.envs }}
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: {{ $env.name }}
+  namespace: {{ $p.name }}
+spec:
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: {{ $p.name }}
+      sources:
+        {{- if eq $i 0 }}
+        direct: true
+        {{- else }}
+        stages:
+          - {{ (index $.Values.envs (sub $i 1)).name }}
+        {{- end }}
+  promotionTemplate:
+    spec:
+      vars:
+        - name: repoURL
+          value: {{ $.Values.github }}/{{ $p.name }}.git
+      steps:
+        - uses: git-clone
+          config:
+            repoURL: '{{ include "kp.expr" "vars.repoURL" }}'
+            checkout:
+              - branch: {{ $.Values.branch }}
+                path: ./repo
+        - uses: yaml-update
+          config:
+            path: ./repo/helm.yaml
+            updates:
+              {{- range $idx, $c := $p.components }}
+              # quote() : sinon un sha tout en chiffres (7616898) est converti en
+              # nombre par Kargo et écrit 7.616898e+06
+              - key: applications.{{ $idx }}.tag.{{ $env.name }}
+                value: '{{ include "kp.expr" (printf "quote(imageFrom(%q).Tag)" (include "kp.image" (dict "root" $ "project" $p.name "component" $c))) }}'
+              {{- end }}
+        - uses: git-commit
+          config:
+            path: ./repo
+            message: 'promote({{ $env.name }}):{{ range $c := $p.components }} {{ $c }}={{ include "kp.expr" (printf "imageFrom(%q).Tag" (include "kp.image" (dict "root" $ "project" $p.name "component" $c))) }}{{ end }}'
+        - uses: git-push
+          config:
+            path: ./repo
+            targetBranch: {{ $.Values.branch }}
+        - uses: argocd-update
+          config:
+            apps:
+              - name: {{ $env.name }}-{{ $p.name }}
+{{- end }}
+{{- end }}

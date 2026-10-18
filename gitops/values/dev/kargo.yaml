@@ -1,0 +1,10 @@
+# Ingress servi par Traefik ; external-dns crée l'ALIAS kargo.dev.check-consulting.net -> NLB.
+# HTTPS : wildcard *.dev.check-consulting.net, certificat par défaut de Traefik (cert-manager).
+api:
+  host: kargo.dev.check-consulting.net
+  oidc:
+    issuerURL: https://keycloak.dev.check-consulting.net/realms/platform
+  # Liens de l'UI Kargo vers les Applications ArgoCD
+  argocd:
+    urls:
+      "": https://argocd.dev.check-consulting.net

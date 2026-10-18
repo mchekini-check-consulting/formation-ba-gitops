@@ -1,0 +1,34 @@
+# Values communes du chart external-dns (Route53).
+#
+# Périmètre autorisé : uniquement les sous-domaines de check-consulting.net.
+#   1. Ici (côté Kubernetes) : domainFilters + zone-id-filter -> external-dns
+#      ne regarde que cette zone et ignore tout autre domaine.
+#   2. Côté AWS (le vrai verrou) : le rôle IAM (live-infrastructure/aws/modules/external-dns)
+#      n'autorise ChangeResourceRecordSets que sur cette zone et que pour les
+#      noms *.check-consulting.net (l'apex et les autres domaines sont refusés).
+
+provider:
+  name: aws
+
+# Seuls les Ingress sont publiés : Traefik renseigne leur status avec le DNS
+# du NLB (providers.kubernetesIngress.publishedService), external-dns crée
+# un enregistrement ALIAS vers ce NLB.
+sources:
+  - ingress
+
+# sync : crée, met à jour et supprime, mais uniquement les enregistrements
+# marqués comme les siens (registre TXT + txtOwnerId propre à chaque cluster)
+policy: sync
+registry: txt
+
+domainFilters:
+  - check-consulting.net
+
+extraArgs:
+  - --zone-id-filter=Z02992983P6JBHBJ5UT37   # zone publique check-consulting.net
+  - --aws-zone-type=public
+
+# Nom lié au rôle IAM par l'association EKS Pod Identity (Terraform)
+serviceAccount:
+  create: true
+  name: external-dns

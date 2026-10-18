@@ -1,0 +1,12 @@
+# Ingress servi par Traefik ; external-dns crée l'ALIAS keycloak.dev.check-consulting.net -> NLB.
+# HTTPS : wildcard *.dev.check-consulting.net, certificat par défaut de Traefik (cert-manager).
+# Issuer des realms : https://keycloak.dev.check-consulting.net/realms/<realm>
+ingress:
+  rules:
+    - host: keycloak.dev.check-consulting.net
+      paths:
+        - path: /
+          pathType: Prefix
+
+# dev : une seule instance
+replicas: 1

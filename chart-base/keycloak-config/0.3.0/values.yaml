@@ -1,0 +1,121 @@
+# keycloak-config-cli : applique les realms générés depuis realms (ci-dessous).
+# Tag = <version cli>-<version Keycloak> : toujours celui de la version Keycloak
+# déployée (chart keycloakx), à monter ensemble.
+image:
+  repository: adorsys/keycloak-config-cli   # multi-arch (amd64, arm64)
+  tag: "6.5.1-26.5.5"
+  pullPolicy: IfNotPresent
+
+# Connexion à Keycloak (realm master).
+#   client         : client de service de keycloak-config-cli (client_credentials, rôle
+#                    admin), secret généré (Job PreSync). Ne pas supprimer ce Secret : sans
+#                    lui et avec le compte de démarrage désactivé, plus d'import possible.
+#   bootstrapAdmin : compte de démarrage (KC_BOOTSTRAP_ADMIN_*, chart keycloakx). Utilisé
+#                    uniquement pour créer le client ci-dessus s'il n'existe pas (Job PreSync).
+keycloak:
+  url: http://keycloak-http                 # Service du chart keycloakx (même namespace)
+  client:
+    id: keycloak-config-cli
+    secret:
+      name: keycloak-config-cli-client
+      key: client-secret
+  bootstrapAdmin:
+    user: admin
+    passwordSecret:
+      name: keycloak-admin
+      key: password
+  availabilityTimeout: 300s                 # attente de Keycloak (démarrage, mise à jour)
+
+# Realm master (géré si enabled) : client de keycloak-config-cli, administrateurs
+# nominatifs (rôle admin, mot de passe initial temporaire), compte de démarrage.
+#   bootstrapAdminEnabled : false = compte de démarrage désactivé (secours : true)
+#   mfa                   : code OTP exigé pour toute connexion au realm master
+#   admins                : <username>: {email, firstName, lastName}  (values/<env>)
+master:
+  enabled: true
+  bootstrapAdminEnabled: false
+  mfa: true
+  admins: {}
+
+# Matrice d'accès (gitops/values/common/access.yaml) : pour le realm
+# access.realm, rôles des clients = access.tools.<client>.roles, groupes = access.groups.
+access: {}
+
+# Domaine des outils : URL d'un client = https://<client.host>.<baseDomain>
+baseDomain: ""                              # ex. dev.check-consulting.net
+
+# Mot de passe initial commun des utilisateurs créés : temporaire (changement
+# imposé à la première connexion), posé uniquement à la création (jamais réappliqué).
+# Lecture : kubectl -n keycloak get secret keycloak-users-initial-password -o jsonpath='{.data.password}' | base64 -d
+users:
+  initialPasswordSecret:
+    name: keycloak-users-initial-password
+    key: password
+
+# Image des Jobs utilitaires : PreSync (Secrets absents, client de keycloak-config-cli),
+# préparation de l'import (clés de signature), PostSync (copie des certificats).
+secretGenerator:
+  image: alpine/k8s:1.31.13                 # kubectl, curl, jq, multi-arch (amd64, arm64)
+
+# Réglages appliqués à chaque realm (surchargeables par realms.<realm>.settings).
+# Pas de SMTP : pas de mot de passe oublié, comptes réinitialisés par un admin.
+realmDefaults:
+  sslRequired: external
+  loginWithEmailAllowed: true
+  duplicateEmailsAllowed: false
+  resetPasswordAllowed: false
+  registrationAllowed: false
+  bruteForceProtected: true
+  passwordPolicy: "length(12) and upperCase(1) and lowerCase(1) and digits(1) and notUsername(undefined)"
+
+# Realms, par nom :
+#   <realm>:
+#     displayName: ...
+#     settings: {}                 # attributs de RealmRepresentation en plus / à la place de realmDefaults
+#     signingKey: false            # true : clé RS256 du realm fixée par nous (Certificate
+#                                  # cert-manager, Secret keycloak-realm-<realm>-signing),
+#                                  # active (priorité 200) pour SAML et OIDC
+#     clients:                     # un client par outil
+#       <clientId>:
+#         name: ...                # libellé (défaut : clientId)
+#         protocol: openid-connect # ou saml
+#         host: kargo              # -> rootUrl https://kargo.<baseDomain>
+#         redirectPaths: [/login]  # -> https://<host>.<baseDomain>/login
+#         extraRedirectUris: []    # URI complètes (ex. CLI : http://localhost/auth/callback)
+#         public: false            # OIDC : true = PKCE sans secret ; false = secret dans le
+#                                  # Secret keycloak-client-<realm>-<clientId> (clé client-secret)
+#         rolesClaim: roles        # OIDC : claim du jeton qui porte les rôles de CE client
+#         roles: [admin, viewer]   # rôles du client (realm hors matrice d'accès)
+#         samlGroupsAttribute: groups # SAML : rôles dans cet attribut multi-valeurs ; rôle
+#                                  # renommé en access.tools.<client>.roles.<rôle>.group
+#         attributes: {}           # attributs Keycloak du client (ex. SAML)
+#         protocolMappers: []      # mappers en plus (ex. SAML : login, email, rôles)
+#         settings: {}             # attributs de ClientRepresentation en plus / à la place des
+#                                  # valeurs générées (ex. defaultClientScopes: [])
+#         idpCertificateSecret:    # SAML : certificat de la clé fixée du realm (signingKey)
+#           namespace: sonarqube   # copié dans ce Secret, clé certificate (Job PostSync)
+#           name: sonarqube-saml-idp
+#     groups:                      # realm hors matrice d'accès : groupe = rôles de clients
+#       <groupe>:
+#         clientRoles: {kargo: [admin], argocd: [admin]}
+#         mfa: false               # true : code OTP exigé (flux browser-mfa)
+#     users:                       # jamais supprimés par keycloak-config-cli : enabled: false pour désactiver
+#       <username>:
+#         email: ...
+#         firstName: ...
+#         lastName: ...
+#         enabled: true
+#         groups: [<groupe>]
+realms: {}
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    memory: 512Mi
+
+# Clés de signature fixées (realms.<realm>.signingKey) : certificat autosigné cert-manager.
+# rotationPolicy Never : un renouvellement garde la même clé (sinon SonarQube casse).
+signingKeys:
+  duration: 87600h                          # 10 ans

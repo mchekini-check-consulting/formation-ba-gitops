@@ -24,8 +24,10 @@ chartBase:
 # Projets métier (chart business/ : AppProjects, ApplicationSet formation-ba, pipelines Kargo),
 # environnements et projets déclarés dans business/values.yaml :
 # Application business-root, dernière wave (après les outils de la plateforme)
+# Migration vers gitops/ : business-root retirée (sans finalizer : ses objets restent
+# en place), repris par le chart racine gitops/ au relancement de bootstrap.sh.
 businessRoot:
-  enabled: true
+  enabled: false
   repoURL: https://github.com/mchekini-check-consulting/formation-ba-gitops.git
   targetRevision: main
   path: business
@@ -48,6 +50,8 @@ tools:
     version: 0.9.0     # chart cnpg-cluster
   sonarqube:
     version: 2026.5.1002
+  sonarqube-config:
+    version: 0.1.0     # chart maison chart-base/sonarqube-config
   cloudbeaver-db:
     version: 0.9.0     # chart cnpg-cluster
   cloudbeaver:
@@ -61,4 +65,4 @@ tools:
   keycloak:
     version: 7.1.9     # chart keycloakx, Keycloak 26.5.5
   keycloak-config:
-    version: 0.2.0     # chart maison chart-base/keycloak-config
+    version: 0.3.0     # chart maison chart-base/keycloak-config

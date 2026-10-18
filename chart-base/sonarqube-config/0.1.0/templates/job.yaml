@@ -1,0 +1,104 @@
+{{- /* Groupes à gérer : access.tools.sonarqube.roles.<rôle>.group hors groupes intégrés,
+       avec leurs permissions globales (permissions, défaut : aucune).
+       Nom du Job = hash de la configuration : relancé à chaque modification. */}}
+{{- $roles := dig "tools" "sonarqube" "roles" dict (.Values.access | default dict) }}
+{{- $groups := dict }}
+{{- range $role, $def := $roles }}
+{{- $def = $def | default dict }}
+{{- with $def.group }}
+{{- if has . $.Values.builtinGroups }}
+{{- if $def.permissions }}
+{{- fail (printf "access.tools.sonarqube.roles.%s : groupe intégré %s, permissions réglées dans l'interface SonarQube" $role .) }}
+{{- end }}
+{{- else }}
+{{- range ($def.permissions | default list) }}
+{{- if not (has . $.Values.globalPermissions) }}
+{{- fail (printf "access.tools.sonarqube.roles.%s.permissions : %s inconnue (%s)" $role . (join ", " $.Values.globalPermissions)) }}
+{{- end }}
+{{- end }}
+{{- $_ := set $groups . ($def.permissions | default list) }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- if $groups }}
+{{- $spec := "" }}
+{{- range $g, $perms := $groups }}{{ $spec = printf "%s %s:%s" $spec $g (join "," $perms) }}{{ end }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-{{ $spec | sha256sum | trunc 8 }}
+  labels:
+    app.kubernetes.io/name: sonarqube-config
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  backoffLimit: 3
+  activeDeadlineSeconds: 900
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: sonarqube-config
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsUser: 65534
+        runAsGroup: 65534
+        runAsNonRoot: true
+      containers:
+        - name: apply
+          image: {{ .Values.image | quote }}
+          env:
+            - name: SONAR_URL
+              value: {{ .Values.sonarqube.url | quote }}
+            - name: TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.tokenSecret.name }}
+                  key: {{ .Values.tokenSecret.key }}
+                  optional: true
+            # "groupe:perm1,perm2" séparés par des espaces
+            - name: SONAR_GROUPS
+              value: {{ trim $spec | quote }}
+            - name: PERMISSIONS
+              value: {{ join " " .Values.globalPermissions | quote }}
+          command:
+            - sh
+            - -ec
+            - |
+              if [ -z "$TOKEN" ]; then
+                echo "Secret {{ .Values.tokenSecret.name }} absent : rien appliqué (voir values du chart)"
+                exit 0
+              fi
+              api() { curl -fsS -H "Authorization: Bearer $TOKEN" "$@"; }
+              until curl -fsS "$SONAR_URL/api/system/status" | jq -e '.status == "UP"' >/dev/null; do
+                echo "SonarQube indisponible, nouvel essai dans 10 s"; sleep 10
+              done
+              api -o /dev/null "$SONAR_URL/api/authentication/validate"
+              for entry in $SONAR_GROUPS; do
+                GROUP="${entry%%:*}"; WANTED=",${entry#*:},"
+                if api "$SONAR_URL/api/user_groups/search?q=$GROUP&ps=500" \
+                    | jq -e --arg g "$GROUP" 'any(.groups[]; .name == $g)' >/dev/null; then
+                  echo "Groupe $GROUP présent"
+                else
+                  api -o /dev/null -X POST --data-urlencode "name=$GROUP" \
+                    --data-urlencode "description=Géré par sonarqube-config (matrice d'accès)" \
+                    "$SONAR_URL/api/user_groups/create"
+                  echo "Groupe $GROUP créé"
+                fi
+                for p in $PERMISSIONS; do
+                  case "$WANTED" in
+                    *",$p,"*) action=add_group ;;
+                    *) action=remove_group ;;
+                  esac
+                  api -o /dev/null -X POST --data-urlencode "groupName=$GROUP" --data-urlencode "permission=$p" \
+                    "$SONAR_URL/api/permissions/$action"
+                done
+                echo "Groupe $GROUP : permissions globales = ${entry#*:}"
+              done
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 128Mi
+{{- end }}

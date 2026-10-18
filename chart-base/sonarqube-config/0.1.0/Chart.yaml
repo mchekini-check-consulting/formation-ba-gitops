@@ -1,0 +1,7 @@
+apiVersion: v2
+name: sonarqube-config
+description: >-
+  Groupes SonarQube et leurs permissions globales, générés depuis la matrice d'accès
+  (access.tools.sonarqube.roles) et appliqués par l'API SonarQube.
+type: application
+version: 0.1.0

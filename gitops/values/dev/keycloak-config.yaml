@@ -1,0 +1,33 @@
+# URL des clients : https://<client.host>.dev.check-consulting.net
+baseDomain: dev.check-consulting.net
+
+# Utilisateurs dev, par realm. Mot de passe initial commun et temporaire (changement
+# imposé à la première connexion), posé à la création seulement :
+#   kubectl -n keycloak get secret keycloak-users-initial-password -o jsonpath='{.data.password}' | base64 -d
+# Jamais supprimés par keycloak-config-cli : enabled: false pour désactiver un compte.
+# groups : groupes de values/common/access.yaml (vérifiés au rendu).
+realms:
+  platform:
+    users:
+      # jdupont:
+      #   email: jean.dupont@check-consulting.net
+      #   firstName: Jean
+      #   lastName: Dupont
+      #   groups: [ba]
+      admin.plateforme:
+        email: hadjourlamine.ssi@gmail.com
+        firstName: lamine
+        lastName: hadjour
+        groups: [platform-admins]
+
+# Administrateurs Keycloak nominatifs (realm master, rôle admin) : console
+# https://keycloak.dev.check-consulting.net/admin/master/console/
+# Même mot de passe initial temporaire ; code OTP exigé (application d'authentification
+# configurée à la première connexion). Le compte de démarrage "admin" est désactivé :
+# garder au moins deux administrateurs (secours en cas de perte du téléphone).
+master:
+  admins:
+    lamine.hadjour:
+      email: hadjourlamine.ssi@gmail.com
+      firstName: lamine
+      lastName: hadjour

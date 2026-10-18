@@ -29,9 +29,10 @@ spec:
     - { group: kargo.akuity.io, kind: ProjectConfig }
     - { group: kargo.akuity.io, kind: Warehouse }
     - { group: kargo.akuity.io, kind: Stage }
-    # SSO : ServiceAccount annoté (claims) + RoleBinding vers le Role kargo-promoter
+    # SSO (matrice d'accès) : ServiceAccount annoté (claims) + RoleBinding vers un Role du Project
     - { group: "", kind: ServiceAccount }
     - { group: rbac.authorization.k8s.io, kind: RoleBinding }
+    - { group: rbac.authorization.k8s.io, kind: Role }        # projectRules (Role sur mesure)
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
@@ -45,6 +46,9 @@ spec:
     targetRevision: {{ .Values.gitops.targetRevision }}
     path: business/kargo-pipelines
     helm:
+      # Matrice d'accès de la plateforme (droits SSO dans chaque Project), même dépôt
+      valueFiles:
+        - ../../platform-gitops/values/common/access.yaml
       valuesObject:
         {{- toYaml (pick .Values "github" "branch" "registry" "envs" "projects") | nindent 8 }}
   destination:

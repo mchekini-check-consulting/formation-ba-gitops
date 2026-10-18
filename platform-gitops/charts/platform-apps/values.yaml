@@ -31,6 +31,7 @@ syncPolicy:
 #   - chart: <dossier> : chart de chart-base/<dossier>/<version> au lieu de chart-base/<outil>
 #     (ex. cnpg-cluster, réutilisé par chaque outil qui a besoin d'une base)
 #   - crds: false : outil sans CRDs (pas d'Application crds-<outil>)
+#   - access: true : reçoit aussi values/common/access.yaml (matrice d'accès SSO)
 tools:
   # Installé une première fois par bootstrap.sh (helm, crds.install=false), puis
   # l'Application argocd reprend la même release : ArgoCD se met à jour lui-même.
@@ -42,6 +43,7 @@ tools:
     namespace: argocd
     syncWave: "0"
     finalizer: false
+    access: true
   traefik:
     enabled: true
     version: ""
@@ -88,6 +90,15 @@ tools:
     namespace: sonarqube
     syncWave: "40"
     crds: false
+  # Groupes SonarQube et leurs permissions (chart maison chart-base/sonarqube-config),
+  # depuis la matrice d'accès. Wave 45 : après SonarQube.
+  sonarqube-config:
+    enabled: true
+    version: ""
+    namespace: sonarqube
+    syncWave: "45"
+    crds: false
+    access: true
   # Base interne de CloudBeaver (comptes, équipes, droits d'accès aux connexions).
   # Wave 20 : après l'opérateur CloudNativePG ; finalizer: false : la base survit
   # à la suppression de l'Application.
@@ -137,6 +148,7 @@ tools:
     version: ""
     namespace: keycloak
     syncWave: "35"
+    access: true
     crds: false
   # Promotion des images dev -> qualif -> preprod -> prod (Kargo). Pipelines :
   # formation-ba-gitops/business/kargo-pipelines, via business-root (wave 50).
@@ -147,3 +159,4 @@ tools:
     version: ""
     namespace: kargo
     syncWave: "40"
+    access: true
