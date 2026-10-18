@@ -170,7 +170,7 @@ business:
   enabled: true
   # Charts maison de chart-base (même dépôt que chartBase de cluster.yaml)
   charts:
-    app: gitops-ba-formation/0.3.0      # chart applicatif des projets
+    app: charts-ba-formations/0.3.0     # chart applicatif des projets
     pipelines: kargo-pipelines/0.3.0    # Project, Warehouse, Stages Kargo
 
   # Dépôts métier : <github>/<projet>.git, branche lue par ArgoCD et écrite par Kargo

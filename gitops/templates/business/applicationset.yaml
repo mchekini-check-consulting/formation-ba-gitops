@@ -1,5 +1,5 @@
 {{- /* Une Application par (environnement x projet), dans l'AppProject du projet :
-         - chart  : chart-base/<business.charts.app> (gitops-ba-formation)
+         - chart  : chart-base/<business.charts.app> (charts-ba-formations)
          - values : helm.yaml à la racine du dépôt du projet
        Les listes viennent de values.yaml (business.envs, business.projects).
        Wave 51 : après les AppProjects. Prune=false : la racine ne supprime jamais

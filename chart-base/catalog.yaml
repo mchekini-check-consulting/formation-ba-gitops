@@ -48,8 +48,8 @@ tools:
   # (groupes SonarQube et leurs permissions depuis la matrice d'accès, API SonarQube).
 
   # Charts maison des projets métier (versions : business.charts de gitops/values.yaml) :
-  #   gitops-ba-formation : chart applicatif des dépôts formation-ba-* (helm.yaml)
-  #   kargo-pipelines     : Project, Warehouse, Stages Kargo de chaque dépôt
+  #   charts-ba-formations : chart applicatif des dépôts formation-ba-* (helm.yaml)
+  #   kargo-pipelines      : Project, Warehouse, Stages Kargo de chaque dépôt
 
   # Promotion des images dev -> qualif -> preprod -> prod (pilote ArgoCD).
   # Chart publié uniquement en OCI (sync-charts.sh gère oci://)
