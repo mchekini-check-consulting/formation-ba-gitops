@@ -1,0 +1,7 @@
+# Ingress servi par Traefik ; external-dns crée l'ALIAS admincnpg.dev.check-consulting.net -> NLB.
+# HTTPS : wildcard *.dev.check-consulting.net, certificat par défaut de Traefik (cert-manager).
+server:
+  url: https://admincnpg.dev.check-consulting.net
+
+ingress:
+  host: admincnpg.dev.check-consulting.net

@@ -1,0 +1,37 @@
+{{- /* Un AppProject ArgoCD par projet (values.yaml : business.projects).
+       Chaque projet ne peut :
+         - lire que le dépôt des charts (chart applicatif) et son propre dépôt (helm.yaml)
+         - déployer que dans ses namespaces <env>-<projet>, sur n'importe quel cluster déclaré
+         - créer que les ressources du chart (+ son namespace, via CreateNamespace)
+       Wave 50 : après les outils. Prune=false : jamais supprimé par la racine. */}}
+{{- with .Values.business }}
+{{- if .enabled }}
+{{- range .projects }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: {{ .name }}
+  namespace: {{ $.Values.argocdNamespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "50"
+    argocd.argoproj.io/sync-options: Prune=false
+spec:
+  description: {{ $.Values.business.github }}/{{ .name }}
+  sourceRepos:
+    - {{ required "chartBase.repoURL requis" $.Values.chartBase.repoURL }}
+    - {{ $.Values.business.github }}/{{ .name }}.git
+  destinations:
+    - name: "*"
+      namespace: "*-{{ .name }}"
+  clusterResourceWhitelist:
+    - { group: "", kind: Namespace }   # CreateNamespace=true
+  namespaceResourceWhitelist:
+    - { group: apps, kind: Deployment }
+    - { group: "", kind: Service }
+    - { group: networking.k8s.io, kind: Ingress }
+    - { group: traefik.io, kind: Middleware }
+    - { group: cert-manager.io, kind: Certificate }   # TLS *.<projet>.<env>.<domaine>
+{{- end }}
+{{- end }}
+{{- end }}

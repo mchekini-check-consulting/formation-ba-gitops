@@ -1,0 +1,73 @@
+{{- /* Par dépôt : namespace du Project (créé ici pour l'ordre de synchronisation
+       ArgoCD, puis adopté par Kargo grâce au label), Project, ProjectConfig et droits SSO (kp.ssoBindings). */}}
+{{- range $p := .Values.projects }}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .name }}
+  labels:
+    kargo.akuity.io/project: "true"
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+    # Supprimer le Project ne supprime pas le namespace (historique des Freights)
+    kargo.akuity.io/keep-namespace: "true"
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Project
+metadata:
+  name: {{ .name }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: ProjectConfig
+metadata:
+  name: {{ .name }}
+  namespace: {{ .name }}
+spec:
+  promotionPolicies:
+    {{- range $.Values.envs }}
+    {{- if .autoPromote }}
+    - stageSelector:
+        name: {{ .name }}
+      autoPromotionEnabled: true
+    {{- end }}
+    {{- end }}
+{{- range $b := include "kp.ssoBindings" $ | fromYamlArray }}
+---
+# SSO : utilisateurs dont le jeton porte un de ces rôles Keycloak = Role {{ $b.role }}
+# dans ce Project (matrice d'accès, tools.kargo.roles)
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ $b.name }}
+  namespace: {{ $p.name }}
+  annotations:
+    rbac.kargo.akuity.io/claims: {{ dict "roles" $b.claims | toJson | quote }}
+{{- with $b.rules }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ $b.role }}
+  namespace: {{ $p.name }}
+rules:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ $b.name }}
+  namespace: {{ $p.name }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ $b.role }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ $b.name }}
+    namespace: {{ $p.name }}
+{{- end }}
+{{- end }}

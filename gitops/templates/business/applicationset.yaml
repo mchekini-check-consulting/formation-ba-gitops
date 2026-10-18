@@ -1,0 +1,73 @@
+{{- /* Une Application par (environnement x projet), dans l'AppProject du projet :
+         - chart  : chart-base/<business.charts.app> (gitops-ba-formation)
+         - values : helm.yaml à la racine du dépôt du projet
+       Les listes viennent de values.yaml (business.envs, business.projects).
+       Wave 51 : après les AppProjects. Prune=false : la racine ne supprime jamais
+       l'ApplicationSet (sa suppression supprimerait toutes les Applications des projets).
+       Les {{`{{ ... }}`}} sont échappés : ils sont évalués par l'ApplicationSet, pas par Helm. */}}
+{{- with .Values.business }}
+{{- if .enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: formation-ba
+  namespace: {{ $.Values.argocdNamespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "51"
+    argocd.argoproj.io/sync-options: Prune=false
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - matrix:
+        generators:
+          - list:
+              elements:
+                {{- range .envs }}
+                - env: {{ .name }}
+                  cluster: {{ .cluster }}
+                {{- end }}
+          - list:
+              elements:
+                {{- range .projects }}
+                - project: {{ .name }}
+                {{- end }}
+  # Retirer un projet ou un environnement supprime l'Application, mais pas les
+  # Deployments, Services... déjà déployés (suppression = geste manuel)
+  syncPolicy:
+    preserveResourcesOnDeletion: true
+  template:
+    metadata:
+      name: '{{`{{ .env }}-{{ .project }}`}}'
+      annotations:
+        # La Stage Kargo <env> du Project <projet> peut synchroniser cette Application
+        kargo.akuity.io/authorized-stage: '{{`{{ .project }}:{{ .env }}`}}'
+    spec:
+      project: '{{`{{ .project }}`}}'
+      sources:
+        - repoURL: {{ required "chartBase.repoURL requis" $.Values.chartBase.repoURL }}
+          targetRevision: {{ $.Values.chartBase.targetRevision }}
+          path: {{ $.Values.chartBase.path }}/{{ required "business.charts.app requis" .charts.app }}
+          helm:
+            releaseName: '{{`{{ .project }}`}}'
+            valueFiles:
+              - $app/helm.yaml
+            parameters:
+              - name: env
+                value: '{{`{{ .env }}`}}'
+              - name: project
+                value: '{{`{{ .project }}`}}'
+        - repoURL: '{{ .github }}/{{`{{ .project }}`}}.git'
+          targetRevision: {{ .branch }}
+          ref: app
+      destination:
+        name: '{{`{{ .cluster }}`}}'
+        namespace: '{{`{{ .env }}-{{ .project }}`}}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+{{- end }}
+{{- end }}

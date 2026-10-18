@@ -47,6 +47,7 @@ else
   helm upgrade --install argocd "$GITOPS_DIR/../chart-base/argocd/$VERSION" \
     --namespace argocd --create-namespace \
     --skip-crds --set crds.install=false \
+    -f "$GITOPS_DIR/values/common/access.yaml" \
     -f "$GITOPS_DIR/values/common/argocd.yaml" \
     -f "$GITOPS_DIR/values/$ENV/argocd.yaml" \
     --wait

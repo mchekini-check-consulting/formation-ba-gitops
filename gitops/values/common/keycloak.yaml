@@ -1,0 +1,155 @@
+# Values communes du chart keycloakx (Keycloak, SSO des outils de la plateforme).
+# Realms, clients, groupes, utilisateurs : Application keycloak-config (wave 35),
+# values/<env>/keycloak-config.yaml.
+fullnameOverride: keycloak       # Services keycloak-http, keycloak-headless
+
+# Mode production ; HTTP derrière Traefik, qui termine le TLS
+command:
+  - /opt/keycloak/bin/kc.sh
+  - start
+
+# Issuer sans /auth : https://<hôte>/realms/<realm>
+http:
+  relativePath: /
+
+proxy:
+  enabled: true
+  mode: xforwarded               # Traefik envoie X-Forwarded-*, pas Forwarded
+  http:
+    enabled: true
+
+# Base : Cluster CloudNativePG keycloak-db (Application keycloak-db, wave 20).
+# Mot de passe lu dans le Secret généré par l'opérateur : rien en clair dans Git.
+database:
+  vendor: postgres
+  hostname: keycloak-db-rw
+  port: 5432
+  database: keycloak
+  username: keycloak
+  existingSecret: keycloak-db-app
+  existingSecretKey: password
+
+# Attend que la base réponde avant de démarrer Keycloak
+dbchecker:
+  enabled: true
+
+# KC_HOSTNAME : URL publique, déduite de l'Ingress (values/<env>/keycloak.yaml).
+# Compte admin du realm master (secours, et compte de keycloak-config-cli) :
+# mot de passe dans le Secret keycloak-admin, généré par le Job PreSync ci-dessous.
+# Lecture : kubectl -n keycloak get secret keycloak-admin -o jsonpath='{.data.password}' | base64 -d
+extraEnv: |
+  - name: KC_HOSTNAME
+    value: https://{{ (index .Values.ingress.rules 0).host }}
+  - name: KC_BOOTSTRAP_ADMIN_USERNAME
+    value: admin
+  - name: KC_BOOTSTRAP_ADMIN_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: keycloak-admin
+        key: password
+
+ingress:
+  enabled: true
+  ingressClassName: traefik
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 768Mi
+  limits:
+    memory: 1536Mi
+
+# Génère le Secret keycloak-admin s'il n'existe pas (comme le chart cloudbeaver) :
+# rien dans Git, aucune étape manuelle. Hooks ArgoCD PreSync : le Secret existe
+# avant le premier démarrage de Keycloak. Un Secret existant n'est jamais modifié.
+extraManifests:
+  - |
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: keycloak-admin-secret
+      annotations:
+        argocd.argoproj.io/hook: PreSync
+        argocd.argoproj.io/sync-wave: "-1"
+        argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
+    ---
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: Role
+    metadata:
+      name: keycloak-admin-secret
+      annotations:
+        argocd.argoproj.io/hook: PreSync
+        argocd.argoproj.io/sync-wave: "-1"
+        argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
+    rules:
+      # Lire uniquement ce Secret ; create ne peut pas être restreint par nom
+      - apiGroups: [""]
+        resources: [secrets]
+        resourceNames: [keycloak-admin]
+        verbs: [get]
+      - apiGroups: [""]
+        resources: [secrets]
+        verbs: [create]
+    ---
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: RoleBinding
+    metadata:
+      name: keycloak-admin-secret
+      annotations:
+        argocd.argoproj.io/hook: PreSync
+        argocd.argoproj.io/sync-wave: "-1"
+        argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: Role
+      name: keycloak-admin-secret
+    subjects:
+      - kind: ServiceAccount
+        name: keycloak-admin-secret
+        namespace: {{ .Release.Namespace }}
+    ---
+    apiVersion: batch/v1
+    kind: Job
+    metadata:
+      name: keycloak-admin-secret
+      annotations:
+        argocd.argoproj.io/hook: PreSync
+        argocd.argoproj.io/sync-wave: "0"
+        argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          serviceAccountName: keycloak-admin-secret
+          restartPolicy: Never
+          securityContext:
+            runAsUser: 65534
+            runAsGroup: 65534
+            runAsNonRoot: true
+          containers:
+            - name: generate
+              image: alpine/k8s:1.31.13     # kubectl + sh, multi-arch (amd64, arm64)
+              env:
+                - name: NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+                - name: HOME
+                  value: /tmp                # cache kubectl
+              command:
+                - sh
+                - -ec
+                - |
+                  if kubectl -n "$NAMESPACE" get secret keycloak-admin >/dev/null 2>&1; then
+                    echo "Secret keycloak-admin présent : conservé"
+                    exit 0
+                  fi
+                  PASS="$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 24)"
+                  kubectl -n "$NAMESPACE" create secret generic keycloak-admin --from-literal=password="$PASS"
+                  echo "Secret keycloak-admin créé"
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 32Mi
+                limits:
+                  memory: 128Mi

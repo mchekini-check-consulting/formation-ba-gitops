@@ -1,0 +1,32 @@
+# Values communes du chart cloudbeaver (CloudBeaver CE, chart maison).
+server:
+  name: CloudBeaver CNPG
+  # Compte administrateur créé au premier démarrage. Mot de passe : Secret
+  # cloudbeaver-admin généré par le chart s'il n'existe pas (Job PreSync), jamais dans Git :
+  #   kubectl -n cloudbeaver get secret cloudbeaver-admin -o jsonpath='{.data.password}' | base64 -d
+  admin:
+    name: superadmin
+    passwordSecret:
+      name: cloudbeaver-admin
+      key: password
+  anonymousAccess: false
+
+# Base interne (comptes, équipes, droits d'accès aux connexions) : Cluster
+# CloudNativePG cloudbeaver-db (Application cloudbeaver-db, wave 20).
+database:
+  url: jdbc:postgresql://cloudbeaver-db-rw:5432/cloudbeaver
+  user: cloudbeaver
+  schema: cb
+  passwordSecret:
+    name: cloudbeaver-db-app
+    key: password
+
+# Connexions (créées à la main dans l'UI) et identifiants chiffrés : workspace
+# sur gp3, conservé si l'Application est supprimée
+persistence:
+  size: 2Gi
+  keep: true
+
+ingress:
+  enabled: true
+  className: traefik

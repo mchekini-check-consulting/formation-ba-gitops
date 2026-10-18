@@ -1,0 +1,5 @@
+apiVersion: v2
+name: gitops
+description: Chart racine (app of apps) - Applications ArgoCD de la plateforme (CRDs + outils) et des projets métier
+type: application
+version: 0.1.0

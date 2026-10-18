@@ -6,7 +6,8 @@
 # l'Application ArgoCD <env>-<dépôt>.
 #
 # envs, projects, github, branch et registry ne se saisissent PAS ici : ils
-# viennent de business/values.yaml (helm.valuesObject de l'Application).
+# viennent de business/values.yaml (helm.valuesObject de l'Application) ; access
+# de la matrice d'accès de platform-gitops.
 
 envs: []
 projects: []
@@ -14,12 +15,10 @@ github: ""
 branch: main
 registry: ""
 
-# SSO (Keycloak, realm platform) : claims qui donnent le Role kargo-promoter dans
-# chaque Project. Rôle "promoter" du client kargo, porté par le groupe Keycloak ba
-# (platform-gitops/values/common/keycloak-config.yaml). null : aucun.
-sso:
-  promoterClaims:
-    roles: [promoter]
+# SSO : droits dans chaque Project depuis la matrice d'accès
+# platform-gitops/values/common/access.yaml (tools.kargo.roles.<rôle>.project /
+# projectRules), passée en valueFile par l'Application (templates/kargo-pipelines.yaml).
+access: {}
 
 # Images retenues : tags = sha court du commit (7 caractères, écrit par la CI).
 warehouse:

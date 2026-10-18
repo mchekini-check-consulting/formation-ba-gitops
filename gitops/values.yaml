@@ -1,0 +1,218 @@
+# Chart racine (app of apps) : ne déploie que des objets ArgoCD.
+#   templates/platform/  Application <outil> + crds-<outil> par outil activé (tools)
+#   templates/business/  AppProjects, ApplicationSet formation-ba, pipelines Kargo (business)
+# Valeurs communes à tous les environnements.
+# Fournis par values/<env>/cluster.yaml : cluster, gitops, crdBase (repo),
+# chartBase, tools.<outil>.version.
+
+argocdNamespace: argocd
+project: default
+destinationServer: https://kubernetes.default.svc
+
+# Fusionné avec crdBase de cluster.yaml (repoURL, targetRevision, path)
+crdBase:
+  syncWave: "-10"   # CRDs avant les charts (wave 0)
+
+syncPolicy:
+  automated:
+    prune: true
+    selfHeal: true
+  syncOptions:
+    - CreateNamespace=true
+    - ServerSideApply=true
+
+# Outils de la plateforme.
+#   - CRDs : toujours depuis crd-base/<outil>/<version> (Application crds-<outil>)
+#   - Chart : depuis chart-base/<outil>/<version> (Application <outil>)
+#     + values/common/<outil>.yaml + values/<env>/<outil>.yaml
+#   - finalizer: false : supprimer l'Application ne désinstalle pas l'outil
+#   - chart: <dossier> : chart de chart-base/<dossier>/<version> au lieu de chart-base/<outil>
+#     (ex. cnpg-cluster, réutilisé par chaque outil qui a besoin d'une base)
+#   - crds: false : outil sans CRDs (pas d'Application crds-<outil>)
+#   - access: true : reçoit aussi values/common/access.yaml (matrice d'accès SSO)
+# Noms réservés (fichiers de values/) : cluster, access.
+tools:
+  # Installé une première fois par bootstrap.sh (helm, crds.install=false), puis
+  # l'Application argocd reprend la même release : ArgoCD se met à jour lui-même.
+  # releaseName / namespace : identiques à bootstrap.sh.
+  argocd:
+    enabled: true
+    version: ""
+    releaseName: argocd
+    namespace: argocd
+    syncWave: "0"
+    finalizer: false
+    access: true
+  traefik:
+    enabled: true
+    version: ""
+    namespace: traefik
+    syncWave: "0"
+  # Crée les enregistrements *.check-consulting.net des Ingress vers le NLB Traefik.
+  # Wave 10 : après Traefik, dont le Service fournit l'adresse du NLB.
+  external-dns:
+    enabled: true
+    version: ""
+    namespace: external-dns
+    syncWave: "10"
+  # Certificat TLS wildcard *.<env>.check-consulting.net (Let's Encrypt, DNS-01 Route53),
+  # certificat par défaut de Traefik. ClusterIssuer + Certificate : extraObjects
+  # des values. Wave 5 : après Traefik, dont le namespace reçoit le Certificate.
+  cert-manager:
+    enabled: true
+    version: ""
+    namespace: cert-manager
+    syncWave: "5"
+  # Opérateur PostgreSQL de la plateforme : bases des outils (sonarqube-db) et
+  # des applications dev. Wave 0 : opérateur + webhook prêts avant les Cluster.
+  cloudnative-pg:
+    enabled: true
+    version: ""
+    namespace: cnpg-system
+    syncWave: "0"
+  # Base PostgreSQL de SonarQube (ressource Cluster CloudNativePG), dans le
+  # namespace de SonarQube. Wave 20 : après l'opérateur ; finalizer: false :
+  # supprimer l'Application ne supprime pas la base.
+  sonarqube-db:
+    enabled: true
+    version: ""
+    chart: cnpg-cluster
+    namespace: sonarqube
+    syncWave: "20"
+    crds: false
+    finalizer: false
+  # Analyse de code (quality gate des PR). Wave 40 : après sa base et après
+  # keycloak-config (wave 35), qui publie le certificat SAML (Secret sonarqube-saml-idp).
+  sonarqube:
+    enabled: true
+    version: ""
+    namespace: sonarqube
+    syncWave: "40"
+    crds: false
+  # Groupes SonarQube et leurs permissions (chart maison chart-base/sonarqube-config),
+  # depuis la matrice d'accès. Wave 45 : après SonarQube.
+  sonarqube-config:
+    enabled: true
+    version: ""
+    namespace: sonarqube
+    syncWave: "45"
+    crds: false
+    access: true
+  # Base interne de CloudBeaver (comptes, équipes, droits d'accès aux connexions).
+  # Wave 20 : après l'opérateur CloudNativePG ; finalizer: false : la base survit
+  # à la suppression de l'Application.
+  cloudbeaver-db:
+    enabled: true
+    version: ""
+    chart: cnpg-cluster
+    namespace: cloudbeaver
+    syncWave: "20"
+    crds: false
+    finalizer: false
+  # Client SQL web (CloudBeaver CE) pour administrer les clusters CloudNativePG.
+  # Chart maison (chart-base/cloudbeaver) ; connexions créées à la main dans l'UI,
+  # avec le superuser postgres de chaque cluster. Wave 40 : après sa base.
+  # finalizer: false : le workspace (PVC) n'est pas supprimé avec l'Application.
+  cloudbeaver:
+    enabled: true
+    version: ""
+    namespace: cloudbeaver
+    syncWave: "40"
+    crds: false
+    finalizer: false
+  # Base PostgreSQL de Keycloak (ressource Cluster CloudNativePG). Wave 20 : après
+  # l'opérateur ; finalizer: false : la base survit à la suppression de l'Application.
+  keycloak-db:
+    enabled: true
+    version: ""
+    chart: cnpg-cluster
+    namespace: keycloak
+    syncWave: "20"
+    crds: false
+    finalizer: false
+  # SSO des outils de la plateforme (chart keycloakx, image officielle).
+  # Wave 30 : après sa base.
+  keycloak:
+    enabled: true
+    version: ""
+    chart: keycloakx
+    namespace: keycloak
+    syncWave: "30"
+    crds: false
+  # Realms, clients (un par outil), rôles, groupes, utilisateurs : chart maison,
+  # appliqué par keycloak-config-cli. Wave 35 : après Keycloak, avant les outils
+  # qui s'y connectent (wave 40).
+  keycloak-config:
+    enabled: true
+    version: ""
+    namespace: keycloak
+    syncWave: "35"
+    access: true
+    crds: false
+  # Promotion des images dev -> qualif -> preprod -> prod (Kargo). Pipelines :
+  # chart maison chart-base/kargo-pipelines, via templates/business (wave 51).
+  # Wave 40 : après cert-manager (certificats autosignés de ses webhooks).
+  # Lecture ECR : rôle IAM par Pod Identity sur kargo/kargo-controller (Terraform).
+  kargo:
+    enabled: true
+    version: ""
+    namespace: kargo
+    syncWave: "40"
+    access: true
+
+# Projets métier : SEUL endroit où déclarer les environnements et les projets.
+# Un commit suffit. En découlent (templates/business/, après les outils) :
+#   - un AppProject ArgoCD par projet                  (appprojects.yaml, wave 50)
+#   - une Application <env>-<projet> par couple        (applicationset.yaml, wave 51)
+#   - le pipeline Kargo de chaque projet               (kargo-pipelines.yaml, wave 51)
+# Jamais supprimés par la racine (Prune=false) : retirer le bloc ne détruit rien.
+business:
+  enabled: true
+  # Charts maison de chart-base (même dépôt que chartBase de cluster.yaml)
+  charts:
+    app: gitops-ba-formation/0.3.0      # chart applicatif des projets
+    pipelines: kargo-pipelines/0.3.0    # Project, Warehouse, Stages Kargo
+
+  # Dépôts métier : <github>/<projet>.git, branche lue par ArgoCD et écrite par Kargo
+  github: https://github.com/mchekini-check-consulting
+  branch: main
+
+  # Images : <registry>/<projet>/<composant>
+  registry: 205493924920.dkr.ecr.eu-west-3.amazonaws.com
+
+  # Environnements, dans l'ordre de promotion Kargo : le premier reçoit les images
+  # du Warehouse, chacun des suivants le Freight validé par le précédent.
+  #   cluster     : nom du cluster dans ArgoCD ("in-cluster" = celui d'ArgoCD)
+  #   autoPromote : promu dès qu'une nouvelle image arrive ; sinon clic dans l'UI Kargo
+  # Ajouter un environnement : seeder d'abord tag.<env> dans chaque helm.yaml
+  # (le chart applicatif refuse un tag vide).
+  envs:
+    - name: dev
+      cluster: in-cluster
+      autoPromote: true
+    # - name: qualif
+    #   cluster: qualif-cluster
+    # - name: preprod
+    #   cluster: preprod-cluster
+    # - name: prod
+    #   cluster: prod-cluster
+
+  # Projets = dépôts GitHub avec un helm.yaml à leur racine.
+  # components : dans l'ORDRE de la liste applications de helm.yaml (la position
+  # est l'index où Kargo écrit le tag). Réordonner helm.yaml = réordonner ici.
+  # Format exigé dans helm.yaml : tag en style bloc, une valeur par ligne, sans
+  # commentaire en fin de ligne (Kargo remplace jusqu'à la fin de la ligne) :
+  #   tag:
+  #     dev: "abc1234"
+  #     qualif: ""
+  projects:
+    - name: formation-ba-assurance-iard
+      components: [backend, frontend]
+    - name: formation-ba-compte-unique
+      components: [backend, frontend]
+    - name: formation-ba-gestion-financiere
+      components: [backend, frontend]
+    - name: formation-ba-quali-formation
+      components: [backend, frontend]
+    - name: formation-ba-scpi-invest
+      components: [backend, frontend]

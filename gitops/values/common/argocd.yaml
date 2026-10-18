@@ -1,0 +1,58 @@
+# Values du chart argo-cd : bootstrap.sh (1re install) ET Application argocd.
+crds:
+  install: false   # CRDs fournies par crd-base/argocd/<version>
+
+configs:
+  params:
+    # TLS terminé par Traefik
+    server.insecure: true
+  # Droits des utilisateurs SSO : ConfigMap argocd-rbac-cm générée depuis la matrice
+  # d'accès (extraObjects ci-dessous), pas par le chart.
+  rbac:
+    create: false
+  cm:
+    # Sans ce health check, une Application est toujours "Healthy" pour l'app
+    # racine : les sync-waves (crds -10 -> outils 0) n'attendraient rien.
+    resource.customizations.health.argoproj.io_Application: |
+      hs = {}
+      hs.status = "Progressing"
+      hs.message = ""
+      if obj.status ~= nil then
+        if obj.status.health ~= nil then
+          hs.status = obj.status.health.status
+          if obj.status.health.message ~= nil then
+            hs.message = obj.status.health.message
+          end
+        end
+      end
+      return hs
+
+# argocd-rbac-cm depuis values/common/access.yaml (tools.argocd.roles) : rôles du client
+# argocd reçus dans le claim "roles". Sans rôle : aucun accès. Le compte admin local
+# reste actif (secours du SSO). Rechargée à chaud par argocd-server.
+extraObjects:
+  - |
+    {{- with .Values.access }}
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: argocd-rbac-cm
+      namespace: {{ $.Release.Namespace }}
+      labels:
+        app.kubernetes.io/name: argocd-rbac-cm
+        app.kubernetes.io/part-of: argocd     # requis : argocd-server ne lit que ces ConfigMaps
+    data:
+      scopes: "[roles]"
+      policy.default: ""
+      policy.csv: |
+        {{- range $role, $r := .tools.argocd.roles }}
+        {{- if $r.argocdRole }}
+        g, {{ $role }}, {{ $r.argocdRole }}
+        {{- else }}
+        {{- range $r.policies }}
+        p, role:sso-{{ $role }}, {{ . }}
+        {{- end }}
+        g, {{ $role }}, role:sso-{{ $role }}
+        {{- end }}
+        {{- end }}
+    {{- end }}

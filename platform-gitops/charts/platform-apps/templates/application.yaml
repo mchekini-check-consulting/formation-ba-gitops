@@ -1,6 +1,7 @@
 {{- /* Une Application par outil activé : chart de chart-base/<chart>/<version>
        (<chart> = tools.<outil>.chart, par défaut le nom de l'outil)
-       + values de platform-gitops (multi-source).
+       + values de platform-gitops (multi-source), précédées de la matrice
+       d'accès values/common/access.yaml si access: true.
        skipCrds : les CRDs viennent de crd-base (crds.yaml). */}}
 {{- $env := required "cluster.env requis" .Values.cluster.env }}
 {{- range $name, $t := .Values.tools }}
@@ -28,6 +29,10 @@ spec:
         skipCrds: true
         ignoreMissingValueFiles: true
         valueFiles:
+          {{- if $t.access }}
+          # Matrice d'accès partagée (values/common/access.yaml)
+          - $values/{{ $.Values.gitops.path }}/values/common/access.yaml
+          {{- end }}
           - $values/{{ $.Values.gitops.path }}/values/common/{{ $name }}.yaml
           - $values/{{ $.Values.gitops.path }}/values/{{ $env }}/{{ $name }}.yaml
     - repoURL: {{ required "gitops.repoURL requis" $.Values.gitops.repoURL }}

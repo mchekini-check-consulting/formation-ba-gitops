@@ -1,0 +1,8 @@
+apiVersion: v2
+name: keycloak-config
+description: >-
+  Configuration Keycloak as code : realms, clients (un par outil) et leurs rôles,
+  groupes, utilisateurs, générés depuis les values et appliqués par keycloak-config-cli.
+type: application
+version: 0.3.0
+appVersion: "6.5.1"

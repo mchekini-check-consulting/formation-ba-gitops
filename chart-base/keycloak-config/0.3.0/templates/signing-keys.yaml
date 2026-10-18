@@ -1,0 +1,40 @@
+{{- /* Clés de signature fixées des realms (realms.<realm>.signingKey: true) :
+       certificat autosigné cert-manager, Secret keycloak-realm-<realm>-signing
+       (tls.key PKCS#8, tls.crt). Importées comme clé RS256 active du realm par le Job
+       d'import ; certificat copié aux outils SAML (idp-certificate.yaml).
+       rotationPolicy Never : un renouvellement (avant expiration) garde la même clé.
+       Supprimer le Certificate ne supprime pas le Secret (pas d'ownerRef). */}}
+{{- $realms := include "kc.signingRealms" . | fromYamlArray }}
+{{- if $realms }}
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: {{ include "kc.fullname" . }}-selfsigned
+  labels:
+    {{- include "kc.labels" . | nindent 4 }}
+spec:
+  selfSigned: {}
+{{- range $realms }}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ .secret }}
+  labels:
+    {{- include "kc.labels" $ | nindent 4 }}
+spec:
+  secretName: {{ .secret }}
+  commonName: keycloak-realm-{{ .realm }}
+  duration: {{ $.Values.signingKeys.duration }}
+  privateKey:
+    algorithm: RSA
+    size: 2048
+    encoding: PKCS8
+    rotationPolicy: Never
+  usages:
+    - digital signature
+  issuerRef:
+    name: {{ include "kc.fullname" $ }}-selfsigned
+    kind: Issuer
+{{- end }}
+{{- end }}

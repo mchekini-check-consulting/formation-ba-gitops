@@ -26,26 +26,17 @@ api:
     enabled: true
     tokenTTL: 24h
   # SSO Keycloak (realm platform, client public kargo, PKCE) ; issuerURL : values/<env>.
-  # Droits selon les rôles du client kargo, reçus dans le claim "roles"
-  # (groupes Keycloak : values/common/keycloak-config.yaml) :
-  #   admin    -> admin de tout Kargo
-  #   viewer   -> lecture seule de tout Kargo
-  #   promoter -> liste des Projects ici, + Role kargo-promoter dans chaque Project
-  #               (business/kargo-pipelines, templates/project.yaml)
+  # Droits : matrice d'accès values/common/access.yaml (tools.kargo.roles), rôles du
+  # client kargo reçus dans le claim "roles" :
+  #   - global  : ServiceAccounts sso-<admin|viewer|user> du namespace kargo (extraObjects
+  #               ci-dessous), liés aux ClusterRoles kargo-<admin|viewer|user> du chart
+  #   - project : business/kargo-pipelines (un ServiceAccount + RoleBinding par Project)
+  # admins/viewers/users.claims du chart restent vides : tout vient de la matrice.
   oidc:
     enabled: true
     clientID: kargo
     additionalScopes: []       # Keycloak n'a pas de scope "groups" (défaut du chart)
     usernameClaim: email
-    admins:
-      claims:
-        roles: [admin]
-    viewers:
-      claims:
-        roles: [viewer]
-    users:
-      claims:
-        roles: [promoter]
   # TLS terminé par Traefik (wildcard *.<env>.check-consulting.net)
   tls:
     enabled: false
@@ -75,3 +66,43 @@ controller:
 # Pas de webhooks entrants (GitHub/ECR) : les Warehouses interrogent ECR (polling)
 externalWebhooksServer:
   enabled: false
+
+# Droits globaux SSO depuis values/common/access.yaml : un ServiceAccount par niveau
+# (admin, viewer, user), annoté avec les rôles Keycloak qui y donnent droit. L'API Kargo
+# associe un utilisateur aux ServiceAccounts annotés du namespace kargo dont les claims
+# correspondent à son jeton, puis applique leurs ClusterRoles.
+extraObjects:
+  - |
+    {{- with .Values.access }}
+    {{- $levels := dict }}
+    {{- range $role, $r := .tools.kargo.roles }}
+    {{- $level := $r.global | default "user" }}
+    {{- if not (has $level (list "admin" "viewer" "user")) }}
+    {{- fail (printf "access.tools.kargo.roles.%s.global : admin, viewer ou user (reçu %s)" $role $level) }}
+    {{- end }}
+    {{- $_ := set $levels $level (append (get $levels $level | default list) $role) }}
+    {{- end }}
+    {{- range $level, $roles := $levels }}
+    ---
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: sso-{{ $level }}
+      namespace: {{ $.Release.Namespace }}
+      annotations:
+        rbac.kargo.akuity.io/claims: {{ dict "roles" $roles | toJson | quote }}
+    ---
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    metadata:
+      name: kargo-sso-{{ $level }}
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: kargo-{{ $level }}
+    subjects:
+      - kind: ServiceAccount
+        name: sso-{{ $level }}
+        namespace: {{ $.Release.Namespace }}
+    {{- end }}
+    {{- end }}

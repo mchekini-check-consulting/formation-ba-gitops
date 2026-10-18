@@ -1,0 +1,3 @@
+# Lus par bootstrap.sh et par les Applications (valueFiles), pas par ce chart
+bootstrap/
+values/

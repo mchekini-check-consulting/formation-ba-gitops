@@ -1,0 +1,7 @@
+# Propriétaire des enregistrements : un cluster ne touche jamais aux
+# enregistrements créés par un autre.
+txtOwnerId: eks-team-eks-business-analyst-formation-dev
+
+env:
+  - name: AWS_DEFAULT_REGION
+    value: eu-west-3
