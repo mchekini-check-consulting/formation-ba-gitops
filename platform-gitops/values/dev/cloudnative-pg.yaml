@@ -1,2 +1,0 @@
-# dev : une seule instance de l'opérateur (défaut du chart)
-replicaCount: 1

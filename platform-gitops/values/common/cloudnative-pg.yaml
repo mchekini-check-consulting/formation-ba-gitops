@@ -1,5 +1,0 @@
-# Values communes du chart cloudnative-pg (opérateur PostgreSQL).
-# Chaque base est une ressource Cluster dans le namespace de son consommateur
-# (outil de la plateforme ou application dev), rendue par le chart cnpg-cluster.
-crds:
-  create: false   # CRDs fournies par crd-base/cloudnative-pg/<version>
