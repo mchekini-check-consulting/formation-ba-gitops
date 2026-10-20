@@ -35,6 +35,8 @@ tools:
     version: 1.23.0
   cert-manager:
     version: v1.21.2
+  falco:
+    version: 9.2.0
   cloudnative-pg:
     version: 0.29.1
   plugin-barman-cloud:

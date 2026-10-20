@@ -66,6 +66,14 @@ tools:
     version: ""
     namespace: cert-manager
     syncWave: "5"
+  # Détection d'anomalies runtime (syscalls, DaemonSet) : sortie en stdout,
+  # récupérée comme tout autre log de pod. Pas de CRDs.
+  falco:
+    enabled: true
+    version: ""
+    namespace: falco
+    syncWave: "0"
+    crds: false
   # Opérateur PostgreSQL de la plateforme : bases des outils (sonarqube-db) et
   # des applications dev. Wave 0 : opérateur + webhook prêts avant les Cluster.
   cloudnative-pg:
