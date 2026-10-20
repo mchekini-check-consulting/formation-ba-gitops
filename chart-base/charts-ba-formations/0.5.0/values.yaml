@@ -1,0 +1,29 @@
+# Injectés par l'ApplicationSet : ne pas remplir
+env: ""
+project: ""
+
+# Host par défaut des Ingress : <application>.<project>.<env>.<domain>
+# (enregistrement DNS créé par external-dns vers le NLB Traefik)
+domain: check-consulting.net
+ingressClassName: traefik
+
+# Certificat TLS *.<project>.<env>.<domain> : ClusterIssuer de la plateforme
+# (gitops/values/<env>/cert-manager.yaml)
+clusterIssuer: letsencrypt
+
+# Bases PostgreSQL et sauvegardes : gitops/values/<common|env>/databases.yaml
+# (ajouté par l'ApplicationSet après helm.yaml : la politique de la plateforme l'emporte).
+databases: {}
+
+# Fourni par le helm.yaml du dépôt projet.
+# Valeurs littérales uniquement (pas de {{ }}). replicas, tag et envList[].value
+# acceptent une valeur unique ou une map par environnement : { dev: 1, qualif: 2 }
+#
+# database (optionnel) : base PostgreSQL du composant, créée automatiquement
+#   database: true             base <name> (tirets remplacés par _)
+#   database: {name: compta}   base compta
+# Un Cluster CloudNativePG app-db par namespace (<env>-<projet>), une base par
+# composant, rôle app commun (Secret app-db-app). Variables injectées dans le
+# conteneur : PGHOST PGPORT PGDATABASE PGUSER PGPASSWORD DATABASE_URL
+# SPRING_DATASOURCE_URL SPRING_DATASOURCE_USERNAME SPRING_DATASOURCE_PASSWORD
+applications: []

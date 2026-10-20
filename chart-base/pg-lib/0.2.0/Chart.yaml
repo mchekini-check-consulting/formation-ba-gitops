@@ -1,0 +1,9 @@
+apiVersion: v2
+name: pg-lib
+description: >-
+  Chart library (aucun objet seul) - bases PostgreSQL CloudNativePG et leurs
+  sauvegardes S3 (Cluster, ObjectStore, ScheduledBackup, Database, dumps,
+  restauration depuis S3 avec PITR),
+  partagé par pg-cluster (bases de la plateforme) et charts-ba-formations (bases métier).
+type: library
+version: 0.2.0
