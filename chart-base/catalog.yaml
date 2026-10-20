@@ -21,10 +21,6 @@ tools:
   # (déclaration des bases : gitops/values/<common|env>/databases.yaml) :
   #   pg-lib     : chart library (Cluster, bases logiques, sauvegardes S3), partagé
   #   pg-cluster : base d'un outil de la plateforme (tools.<outil>.chart: pg-cluster)
-  # cnpg-cluster (chart upstream) : plus utilisé, remplacé par pg-cluster.
-  cnpg-cluster:
-    repo: https://cloudnative-pg.github.io/charts
-    chart: cluster
 
   # Sauvegardes des bases CNPG vers S3 (plugin CNPG-I Barman Cloud : ObjectStore,
   # archivage WAL, sauvegardes physiques), dans le namespace de l'opérateur
