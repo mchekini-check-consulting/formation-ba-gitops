@@ -2,7 +2,11 @@
        (<chart> = tools.<outil>.chart, par défaut le nom de l'outil)
        + values de gitops/values (multi-source), précédées de la matrice
        d'accès values/common/access.yaml si access: true.
-       skipCrds : les CRDs viennent de crd-base (crds.yaml). */}}
+       skipCrds : les CRDs viennent de crd-base (crds.yaml).
+       ignoreMissingValueFiles: false : un fichier de values absent (erreur de chemin)
+       fait échouer la synchronisation au lieu de déployer les valeurs par défaut du
+       chart. Chaque outil a donc values/common/<outil>.yaml et values/<env>/<outil>.yaml,
+       éventuellement vides. */}}
 {{- $env := required "cluster.env requis" .Values.cluster.env }}
 {{- range $name, $t := .Values.tools }}
 {{- if has $name (list "cluster" "access") }}
@@ -30,7 +34,7 @@ spec:
       helm:
         releaseName: {{ $t.releaseName | default $name }}
         skipCrds: true
-        ignoreMissingValueFiles: true
+        ignoreMissingValueFiles: false
         valueFiles:
           {{- if $t.access }}
           # Matrice d'accès partagée (values/common/access.yaml)

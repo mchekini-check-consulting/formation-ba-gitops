@@ -6,6 +6,10 @@
 fullnameOverride: keycloak-db
 
 cluster:
+  # Jamais supprimé par ArgoCD (prune, suppression de l'Application, erreur de
+  # chemin ou de nom) : supprimer la base est un geste manuel (kubectl delete).
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
   initdb:
     database: keycloak
     owner: keycloak
