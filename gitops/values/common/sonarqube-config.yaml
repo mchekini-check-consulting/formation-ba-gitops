@@ -1,0 +1,3 @@
+# sonarqube-config : groupes et permissions générés depuis la matrice d'accès
+# (values/common/access.yaml) ; valeurs par défaut du chart, rien à surcharger.
+# Fichier requis (ignoreMissingValueFiles: false), même vide.
