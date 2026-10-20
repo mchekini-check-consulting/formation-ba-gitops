@@ -44,6 +44,11 @@ tools:
     repo: https://charts.jetstack.io
     chart: cert-manager
 
+  # Détection d'anomalies runtime (syscalls), sortie en stdout -> récupérée par Fluent Bit
+  falco:
+    repo: https://falcosecurity.github.io/charts
+    chart: falco
+
   # Keycloak (SSO des outils de la plateforme), image officielle quay.io/keycloak.
   # Realms, clients, groupes, utilisateurs : chart maison chart-base/keycloak-config.
   keycloakx:
