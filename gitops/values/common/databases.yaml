@@ -1,7 +1,8 @@
 # Bases PostgreSQL (CloudNativePG) et leurs sauvegardes S3 : SEUL endroit où les déclarer.
 # Lu par pg-lib (chart-base/pg-lib), via :
 #   - pg-cluster       : bases des outils de la plateforme (tools.<outil>-db, databases: true)
-#   - charts-ba-formations : bases des projets métier (à venir)
+#   - charts-ba-formations : bases des projets métier (helm.yaml : applications[].database),
+#                            un Cluster app-db par namespace <env>-<projet>
 # Priorité : defaults < values/<env>/databases.yaml < clusters.<nom> | projects.<projet>
 #
 # Objets créés pour chaque cluster (jamais supprimés par ArgoCD : Prune=false,Delete=false
@@ -63,5 +64,10 @@ databases:
       databases:
         cloudbeaver: {}
 
-  # Bases des projets métier (surcharges par projet, sinon defaults)
+  # Bases des projets métier : les bases viennent de helm.yaml (applications[].database).
+  # Ici seulement les surcharges par projet, sinon defaults. Exemple :
+  #   formation-ba-scpi-invest:
+  #     storage: 5Gi
+  #     databases:
+  #       backend: {logical: {enabled: true}}
   projects: {}

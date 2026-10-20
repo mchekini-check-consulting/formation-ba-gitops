@@ -1,6 +1,7 @@
 {{- /* Un AppProject ArgoCD par projet (values.yaml : business.projects).
        Chaque projet ne peut :
-         - lire que le dépôt des charts (chart applicatif) et son propre dépôt (helm.yaml)
+         - lire que le dépôt des charts (chart applicatif), le dépôt gitops
+           (databases.yaml) et son propre dépôt (helm.yaml)
          - déployer que dans ses namespaces <env>-<projet>, sur n'importe quel cluster déclaré
          - créer que les ressources du chart (+ son namespace, via CreateNamespace)
        Wave 50 : après les outils. Prune=false : jamais supprimé par la racine. */}}
@@ -19,7 +20,7 @@ metadata:
 spec:
   description: {{ $.Values.business.github }}/{{ .name }}
   sourceRepos:
-    - {{ required "chartBase.repoURL requis" $.Values.chartBase.repoURL }}
+    {{- toYaml (list (required "chartBase.repoURL requis" $.Values.chartBase.repoURL) (required "gitops.repoURL requis" $.Values.gitops.repoURL) | uniq) | nindent 4 }}
     - {{ $.Values.business.github }}/{{ .name }}.git
   destinations:
     - name: "*"
@@ -32,6 +33,18 @@ spec:
     - { group: networking.k8s.io, kind: Ingress }
     - { group: traefik.io, kind: Middleware }
     - { group: cert-manager.io, kind: Certificate }   # TLS *.<projet>.<env>.<domaine>
+    # Base PostgreSQL du projet (applications[].database) et ses sauvegardes
+    - { group: postgresql.cnpg.io, kind: Cluster }
+    - { group: postgresql.cnpg.io, kind: Database }
+    - { group: postgresql.cnpg.io, kind: ScheduledBackup }
+    - { group: barmancloud.cnpg.io, kind: ObjectStore }
+    - { group: batch, kind: CronJob }                 # dumps logiques
+    # Créés par les contrôleurs, pas par ArgoCD : visibles dans l'interface ArgoCD
+    # (l'arbre des ressources n'affiche que les types autorisés ici)
+    - { group: apps, kind: ReplicaSet }
+    - { group: "", kind: Pod }
+    - { group: batch, kind: Job }
+    - { group: postgresql.cnpg.io, kind: Backup }
 {{- end }}
 {{- end }}
 {{- end }}

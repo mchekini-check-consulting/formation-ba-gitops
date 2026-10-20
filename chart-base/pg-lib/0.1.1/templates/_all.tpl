@@ -1,0 +1,28 @@
+{{- /*
+Tous les objets d'un cluster : le Cluster, ses bases logiques et leurs
+sauvegardes. Seul point d'entrée des charts appelants (pg-cluster,
+charts-ba-formations) : une base ne peut pas exister sans sa configuration
+de sauvegarde.
+Entrée : sortie de pg-lib.config.
+*/}}
+{{- define "pg-lib.all" -}}
+{{- $ctx := . }}
+{{- $c := .cfg }}
+---
+{{ include "pg-lib.cluster" $ctx }}
+{{- if $c.backup.physical.enabled }}
+---
+{{ include "pg-lib.objectStore" $ctx }}
+---
+{{ include "pg-lib.scheduledBackup" $ctx }}
+{{- end }}
+{{- range $db, $dbCfg := $c.databases }}
+---
+{{ include "pg-lib.database" (dict "ctx" $ctx "db" $db) }}
+{{- $logical := include "pg-lib.merge" (dict "base" $c.backup.logical "over" (($dbCfg | default dict).logical | default dict)) | fromYaml }}
+{{- if $logical.enabled }}
+---
+{{ include "pg-lib.dumpCronJob" (dict "ctx" $ctx "db" $db "logical" $logical) }}
+{{- end }}
+{{- end }}
+{{- end }}

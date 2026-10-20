@@ -1,6 +1,8 @@
 {{- /* Une Application par (environnement x projet), dans l'AppProject du projet :
          - chart  : chart-base/<business.charts.app> (charts-ba-formations)
-         - values : helm.yaml à la racine du dépôt du projet
+         - values : helm.yaml à la racine du dépôt du projet, puis
+                    gitops/values/<common|env>/databases.yaml (bases PostgreSQL et
+                    sauvegardes : en dernier, la politique de la plateforme l'emporte)
        Les listes viennent de values.yaml (business.envs, business.projects).
        Wave 51 : après les AppProjects. Prune=false : la racine ne supprime jamais
        l'ApplicationSet (sa suppression supprimerait toutes les Applications des projets).
@@ -52,6 +54,8 @@ spec:
             releaseName: '{{`{{ .project }}`}}'
             valueFiles:
               - $app/helm.yaml
+              - $values/{{ $.Values.gitops.path }}/values/common/databases.yaml
+              - $values/{{ $.Values.gitops.path }}/values/{{`{{ .env }}`}}/databases.yaml
             parameters:
               - name: env
                 value: '{{`{{ .env }}`}}'
@@ -60,6 +64,9 @@ spec:
         - repoURL: '{{ .github }}/{{`{{ .project }}`}}.git'
           targetRevision: {{ .branch }}
           ref: app
+        - repoURL: {{ required "gitops.repoURL requis" $.Values.gitops.repoURL }}
+          targetRevision: {{ $.Values.gitops.targetRevision }}
+          ref: values
       destination:
         name: '{{`{{ .cluster }}`}}'
         namespace: '{{`{{ .env }}-{{ .project }}`}}'
