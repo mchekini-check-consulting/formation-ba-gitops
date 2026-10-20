@@ -1,0 +1,3 @@
+# Dépendances des charts maison (file://../../pg-lib/...) : régénérées par
+# helm dependency build, ArgoCD le fait à chaque rendu
+chart-base/*/*/charts/*.tgz

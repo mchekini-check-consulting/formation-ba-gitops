@@ -1,0 +1,12 @@
+# dev : bucket et rôle IRSA de l'environnement (formation-ba-landingzone,
+# aws/environments/dev/pg-backups : terragrunt output).
+databases:
+  s3:
+    bucket: team-eks-business-analyst-formation-dev-pg-backups
+    roleArn: arn:aws:iam::205493924920:role/role-team-eks-business-analyst-formation-dev-pg-backups
+
+  # Une seule instance par cluster. Sans réplique, le PDB bloquerait le drain
+  # du nœud (mise à jour du node group) : désactivé.
+  defaults:
+    instances: 1
+    enablePDB: false

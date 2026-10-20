@@ -27,10 +27,13 @@ syncPolicy:
 #     + values/common/<outil>.yaml + values/<env>/<outil>.yaml
 #   - finalizer: false : supprimer l'Application ne désinstalle pas l'outil
 #   - chart: <dossier> : chart de chart-base/<dossier>/<version> au lieu de chart-base/<outil>
-#     (ex. cnpg-cluster, réutilisé par chaque outil qui a besoin d'une base)
+#     (ex. pg-cluster, réutilisé par chaque outil qui a besoin d'une base)
 #   - crds: false : outil sans CRDs (pas d'Application crds-<outil>)
 #   - access: true : reçoit aussi values/common/access.yaml (matrice d'accès SSO)
-# Noms réservés (fichiers de values/) : cluster, access.
+#   - databases: true : base PostgreSQL (chart pg-cluster), décrite dans
+#     values/<common|env>/databases.yaml (databases.clusters.<outil>) au lieu de
+#     values/<common|env>/<outil>.yaml
+# Noms réservés (fichiers de values/) : cluster, access, databases.
 tools:
   # Installé une première fois par bootstrap.sh (helm, crds.install=false), puis
   # l'Application argocd reprend la même release : ArgoCD se met à jour lui-même.
@@ -79,13 +82,14 @@ tools:
     version: ""
     namespace: cnpg-system
     syncWave: "15"
-  # Base PostgreSQL de SonarQube (ressource Cluster CloudNativePG), dans le
-  # namespace de SonarQube. Wave 20 : après l'opérateur ; finalizer: false :
-  # supprimer l'Application ne supprime pas la base.
+  # Base PostgreSQL de SonarQube (Cluster CloudNativePG + sauvegardes S3), dans le
+  # namespace de SonarQube. Wave 20 : après l'opérateur et le plugin de sauvegarde ;
+  # finalizer: false : supprimer l'Application ne supprime pas la base.
   sonarqube-db:
     enabled: true
     version: ""
-    chart: cnpg-cluster
+    chart: pg-cluster
+    databases: true
     namespace: sonarqube
     syncWave: "20"
     crds: false
@@ -113,7 +117,8 @@ tools:
   cloudbeaver-db:
     enabled: true
     version: ""
-    chart: cnpg-cluster
+    chart: pg-cluster
+    databases: true
     namespace: cloudbeaver
     syncWave: "20"
     crds: false
@@ -134,7 +139,8 @@ tools:
   keycloak-db:
     enabled: true
     version: ""
-    chart: cnpg-cluster
+    chart: pg-cluster
+    databases: true
     namespace: keycloak
     syncWave: "20"
     crds: false

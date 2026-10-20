@@ -17,8 +17,11 @@ tools:
     repo: https://cloudnative-pg.github.io/charts
     chart: cloudnative-pg
 
-  # Une base PostgreSQL (ressource Cluster de CloudNativePG), réutilisé par chaque
-  # outil qui a besoin d'une base (tools.<outil>.chart: cnpg-cluster)
+  # Bases PostgreSQL : charts maison, écrits directement dans chart-base
+  # (déclaration des bases : gitops/values/<common|env>/databases.yaml) :
+  #   pg-lib     : chart library (Cluster, bases logiques, sauvegardes S3), partagé
+  #   pg-cluster : base d'un outil de la plateforme (tools.<outil>.chart: pg-cluster)
+  # cnpg-cluster (chart upstream) : plus utilisé, remplacé par pg-cluster.
   cnpg-cluster:
     repo: https://cloudnative-pg.github.io/charts
     chart: cluster

@@ -1,0 +1,67 @@
+# Bases PostgreSQL (CloudNativePG) et leurs sauvegardes S3 : SEUL endroit où les déclarer.
+# Lu par pg-lib (chart-base/pg-lib), via :
+#   - pg-cluster       : bases des outils de la plateforme (tools.<outil>-db, databases: true)
+#   - charts-ba-formations : bases des projets métier (à venir)
+# Priorité : defaults < values/<env>/databases.yaml < clusters.<nom> | projects.<projet>
+#
+# Objets créés pour chaque cluster (jamais supprimés par ArgoCD : Prune=false,Delete=false
+# sur Cluster et Database ; retirer une base des values ne la supprime pas) :
+#   Cluster <nom>, Database <nom>-<base> par base logique,
+#   backup.physical : ObjectStore + ScheduledBackup -> s3://<bucket>/<env>/<namespace>/<nom>/
+#   backup.logical  : CronJob <nom>-dump-<base>     -> .../<nom>/dumps/<base>/
+databases:
+  s3:
+    region: eu-west-3
+    bucket: ""     # values/<env>/databases.yaml (Terraform pg-backups : bucket_name)
+    roleArn: ""    # values/<env>/databases.yaml (Terraform pg-backups : role_arn)
+
+  defaults:
+    # Changer la version majeure déclenche une montée de version des bases existantes
+    imageName: ghcr.io/cloudnative-pg/postgresql:16
+    awsCliImage: amazon/aws-cli:2.38.2   # envoi des dumps vers S3
+    instances: 3
+    enablePDB: true
+    storage: 2Gi             # ne peut qu'augmenter (StorageClass gp3)
+    superuser: false         # Secret <nom>-superuser (postgres), pour CloudBeaver
+    initdb:                  # base et rôle créés à la création du cluster (non modifiables ensuite)
+      database: app
+      owner: app             # Secret <nom>-app ; propriétaire de toutes les bases du cluster
+    databases: {}            # <base>: {} ou <base>: {logical: {enabled: true, ...}}
+    backup:
+      # Sauvegarde physique : base complète planifiée + WAL archivés en continu.
+      # Restauration à n'importe quel instant de la fenêtre de rétention (PITR).
+      physical:
+        enabled: true
+        schedule: "0 0 2 * * *"   # 6 champs (secondes en tête) : tous les jours à 02:00 UTC
+        retention: 7d
+      # Sauvegarde logique : pg_dump de chaque base, restaurable base par base
+      logical:
+        enabled: false
+        schedule: "30 2 * * *"    # 5 champs : tous les jours à 02:30 UTC
+        retentionDays: 14
+
+  # Bases des outils de la plateforme. Clé = nom de l'Application (tools.<clé>)
+  # = nom du Cluster (doit finir par -db). Namespace : celui de l'Application.
+  clusters:
+    # Secret sonarqube-db-app (jdbc-uri...) lu par SonarQube
+    sonarqube-db:
+      superuser: true
+      storage: 5Gi
+      initdb: {database: sonarqube, owner: sonarqube}
+      databases:
+        sonarqube: {}
+    # Secret keycloak-db-app lu par Keycloak
+    keycloak-db:
+      superuser: true
+      initdb: {database: keycloak, owner: keycloak}
+      databases:
+        keycloak: {}
+    # Secret cloudbeaver-db-app lu par CloudBeaver (comptes, équipes, droits)
+    cloudbeaver-db:
+      superuser: true
+      initdb: {database: cloudbeaver, owner: cloudbeaver}
+      databases:
+        cloudbeaver: {}
+
+  # Bases des projets métier (surcharges par projet, sinon defaults)
+  projects: {}
