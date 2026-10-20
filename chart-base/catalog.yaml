@@ -23,6 +23,12 @@ tools:
     repo: https://cloudnative-pg.github.io/charts
     chart: cluster
 
+  # Sauvegardes des bases CNPG vers S3 (plugin CNPG-I Barman Cloud : ObjectStore,
+  # archivage WAL, sauvegardes physiques), dans le namespace de l'opérateur
+  plugin-barman-cloud:
+    repo: https://cloudnative-pg.github.io/charts
+    chart: plugin-barman-cloud
+
   sonarqube:
     repo: https://SonarSource.github.io/helm-chart-sonarqube
     chart: sonarqube

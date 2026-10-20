@@ -70,6 +70,15 @@ tools:
     version: ""
     namespace: cnpg-system
     syncWave: "0"
+  # Sauvegardes des bases CNPG vers S3 (plugin CNPG-I Barman Cloud) : ObjectStore,
+  # archivage WAL (PITR), sauvegardes physiques. Dans le namespace de l'opérateur
+  # (découverte du plugin par son Service). Wave 15 : après cert-manager (wave 5,
+  # certificats mTLS opérateur <-> plugin) et l'opérateur, avant les bases (wave 20).
+  plugin-barman-cloud:
+    enabled: true
+    version: ""
+    namespace: cnpg-system
+    syncWave: "15"
   # Base PostgreSQL de SonarQube (ressource Cluster CloudNativePG), dans le
   # namespace de SonarQube. Wave 20 : après l'opérateur ; finalizer: false :
   # supprimer l'Application ne supprime pas la base.
