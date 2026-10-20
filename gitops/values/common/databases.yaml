@@ -8,7 +8,8 @@
 # Objets créés pour chaque cluster (jamais supprimés par ArgoCD : Prune=false,Delete=false
 # sur Cluster et Database ; retirer une base des values ne la supprime pas) :
 #   Cluster <nom>, Database <nom>-<base> par base logique,
-#   backup.physical : ObjectStore + ScheduledBackup -> s3://<bucket>/<env>/<namespace>/<nom>/
+#   backup.physical : ObjectStore + ScheduledBackup -> s3://<bucket>/<env>/<namespace>/<archive>/
+#                     (<archive> = <nom>, ou <nom>-g<generation> après une restauration)
 #   backup.logical  : CronJob <nom>-dump-<base>     -> .../<nom>/dumps/<base>/
 databases:
   s3:
@@ -40,6 +41,14 @@ databases:
         enabled: false
         schedule: "30 2 * * *"    # 5 champs : tous les jours à 02:30 UTC
         retentionDays: 14
+    # Restauration depuis S3 : procédure complète dans gitops/README.md
+    # (« Restaurer une base »). generation : numéro de l'archive S3 du cluster,
+    # +1 à chaque restauration (la base restaurée écrit dans une archive neuve).
+    generation: 0
+    restore:
+      enabled: false   # true seulement pendant la restauration (étapes 1 à 3)
+      targetTime: ""   # PITR, ex. "2026-10-20T10:30:00Z" ; vide = dernier état archivé
+      from: ""         # archive lue ; vide = génération précédente (<nom>[-g<N-1>])
 
   # Bases des outils de la plateforme. Clé = nom de l'Application (tools.<clé>)
   # = nom du Cluster (doit finir par -db). Namespace : celui de l'Application.

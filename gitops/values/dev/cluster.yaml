@@ -42,19 +42,19 @@ tools:
   plugin-barman-cloud:
     version: 0.8.1     # plugin v0.15.1
   sonarqube-db:
-    version: 0.1.1     # chart pg-cluster
+    version: 0.2.0     # chart pg-cluster
   sonarqube:
     version: 2026.5.1002
   sonarqube-config:
     version: 0.1.0     # chart maison chart-base/sonarqube-config
   cloudbeaver-db:
-    version: 0.1.1     # chart pg-cluster
+    version: 0.2.0     # chart pg-cluster
   cloudbeaver:
     version: 0.1.0     # chart maison chart-base/cloudbeaver
   kargo:
     version: 1.12.4
   keycloak-db:
-    version: 0.1.1     # chart pg-cluster
+    version: 0.2.0     # chart pg-cluster
   # keycloak et keycloak-config se montent ensemble : le tag de keycloak-config-cli
   # (chart-base/keycloak-config) suit la version de Keycloak (26.5.5 ici)
   keycloak:
