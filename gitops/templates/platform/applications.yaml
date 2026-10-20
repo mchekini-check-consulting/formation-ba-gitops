@@ -2,15 +2,17 @@
        (<chart> = tools.<outil>.chart, par défaut le nom de l'outil)
        + values de gitops/values (multi-source), précédées de la matrice
        d'accès values/common/access.yaml si access: true.
+       databases: true (bases PostgreSQL, chart pg-cluster) : values/<common|env>/databases.yaml
+       à la place de values/<common|env>/<outil>.yaml, + databases.env.
        skipCrds : les CRDs viennent de crd-base (crds.yaml).
        ignoreMissingValueFiles: false : un fichier de values absent (erreur de chemin)
        fait échouer la synchronisation au lieu de déployer les valeurs par défaut du
        chart. Chaque outil a donc values/common/<outil>.yaml et values/<env>/<outil>.yaml,
-       éventuellement vides. */}}
+       éventuellement vides (sauf databases: true). */}}
 {{- $env := required "cluster.env requis" .Values.cluster.env }}
 {{- range $name, $t := .Values.tools }}
-{{- if has $name (list "cluster" "access") }}
-{{- fail (printf "tools.%s : nom réservé (values/<env>/cluster.yaml, values/common/access.yaml)" $name) }}
+{{- if has $name (list "cluster" "access" "databases") }}
+{{- fail (printf "tools.%s : nom réservé (values/<env>/cluster.yaml, values/common/access.yaml, values/<env>/databases.yaml)" $name) }}
 {{- end }}
 {{- if $t.enabled }}
 ---
@@ -40,8 +42,19 @@ spec:
           # Matrice d'accès partagée (values/common/access.yaml)
           - $values/{{ $.Values.gitops.path }}/values/common/access.yaml
           {{- end }}
+          {{- if $t.databases }}
+          # Bases PostgreSQL et sauvegardes (databases.clusters.<outil>)
+          - $values/{{ $.Values.gitops.path }}/values/common/databases.yaml
+          - $values/{{ $.Values.gitops.path }}/values/{{ $env }}/databases.yaml
+          {{- else }}
           - $values/{{ $.Values.gitops.path }}/values/common/{{ $name }}.yaml
           - $values/{{ $.Values.gitops.path }}/values/{{ $env }}/{{ $name }}.yaml
+          {{- end }}
+        {{- if $t.databases }}
+        parameters:
+          - name: databases.env   # préfixe S3 des sauvegardes
+            value: {{ $env }}
+        {{- end }}
     - repoURL: {{ required "gitops.repoURL requis" $.Values.gitops.repoURL }}
       targetRevision: {{ $.Values.gitops.targetRevision }}
       ref: values
