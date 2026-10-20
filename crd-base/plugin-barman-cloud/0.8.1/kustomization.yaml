@@ -1,0 +1,5 @@
+# Généré par scripts/sync-crds.sh plugin-barman-cloud 0.8.1 - NE PAS MODIFIER
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - objectstores.barmancloud.cnpg.io.yml

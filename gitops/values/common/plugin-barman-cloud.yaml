@@ -1,0 +1,5 @@
+# Values communes du chart plugin-barman-cloud (sauvegardes CNPG vers S3).
+# Les ObjectStore (bucket, préfixe, rétention) et l'accès S3 (IRSA) sont portés
+# par chaque base, pas par le plugin.
+crds:
+  create: false   # CRD ObjectStore fournie par crd-base/plugin-barman-cloud/<version>

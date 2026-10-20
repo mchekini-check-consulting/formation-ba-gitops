@@ -20,6 +20,11 @@ tools:
     repo: https://cloudnative-pg.github.io/charts
     chart: cloudnative-pg
 
+  # Sauvegardes des bases CNPG vers S3 (CRD ObjectStore) ; CRDs en templates (crds.create)
+  plugin-barman-cloud:
+    repo: https://cloudnative-pg.github.io/charts
+    chart: plugin-barman-cloud
+
   # Certificats TLS (Let's Encrypt, DNS-01 Route53)
   cert-manager:
     repo: https://charts.jetstack.io
