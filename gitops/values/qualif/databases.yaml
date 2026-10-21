@@ -1,0 +1,15 @@
+# qualif : hébergé sur le cluster EKS de dev (namespaces qualif-<projet>), avec
+# son propre bucket et son propre rôle IRSA (formation-ba-landingzone,
+# aws/environments/qualif/pg-backups : terragrunt output).
+# Seul fichier de values/qualif : les outils de la plateforme sont ceux de dev
+# (pas de cluster.yaml ici).
+databases:
+  s3:
+    bucket: team-eks-business-analyst-formation-qualif-pg-backups
+    roleArn: arn:aws:iam::205493924920:role/role-team-eks-business-analyst-formation-qualif-pg-backups
+
+  # Une seule instance par cluster. Sans réplique, le PDB bloquerait le drain
+  # du nœud (mise à jour du node group) : désactivé.
+  defaults:
+    instances: 1
+    enablePDB: false
