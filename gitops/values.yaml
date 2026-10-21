@@ -213,8 +213,10 @@ business:
     - name: dev
       cluster: in-cluster
       autoPromote: true
-    # - name: qualif
-    #   cluster: qualif-cluster
+    # Même cluster que dev (namespaces qualif-<projet>)
+    - name: qualif
+      cluster: in-cluster
+      autoPromote: false
     # - name: preprod
     #   cluster: preprod-cluster
     # - name: prod
