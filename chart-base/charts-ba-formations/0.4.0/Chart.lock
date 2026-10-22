@@ -1,6 +1,0 @@
-dependencies:
-- name: pg-lib
-  repository: file://../../pg-lib/0.1.1
-  version: 0.1.1
-digest: sha256:9ea7f98b8eeccf7b67cf2b53c2046479f3adfc90e15afd324090bd128a27aa3e
-generated: "2026-10-20T04:24:10.3508135+02:00"

@@ -1,0 +1,147 @@
+{{- /* Copie le certificat de la clé de signature fixée d'un realm (Secret cert-manager,
+       signing-keys.yaml) dans un Secret d'un autre namespace, clé certificate, sans
+       en-têtes PEM (ex. SonarQube SAML : certificat de l'IdP). Aucun appel à Keycloak.
+       Hook PostSync : après le Certificate prêt et l'import terminé ; Secret créé ou mis
+       à jour. La clé privée n'est jamais copiée.
+       RBAC : lecture du Secret source ; un Role par namespace cible, limité au Secret
+       (create : non restreignable). */}}
+{{- $targets := include "kc.idpCertificateSecrets" . | fromYamlArray }}
+{{- if $targets }}
+{{- $name := printf "%s-idp-cert" (include "kc.fullname" .) }}
+{{- $sources := list }}
+{{- range $targets }}{{ $sources = append $sources .source }}{{ end }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "kc.labels" . | nindent 4 }}
+  annotations:
+    {{- include "kc.hook" (dict "phase" "PostSync" "wave" "-1") | nindent 4 }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ $name }}-source
+  labels:
+    {{- include "kc.labels" . | nindent 4 }}
+  annotations:
+    {{- include "kc.hook" (dict "phase" "PostSync" "wave" "-1") | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: [secrets]
+    resourceNames: {{ $sources | uniq | toJson }}
+    verbs: [get]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ $name }}-source
+  labels:
+    {{- include "kc.labels" . | nindent 4 }}
+  annotations:
+    {{- include "kc.hook" (dict "phase" "PostSync" "wave" "-1") | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ $name }}-source
+subjects:
+  - kind: ServiceAccount
+    name: {{ $name }}
+    namespace: {{ .Release.Namespace }}
+{{- range $t := $targets }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ $name }}-{{ $t.name }}
+  namespace: {{ $t.namespace }}
+  labels:
+    {{- include "kc.labels" $ | nindent 4 }}
+  annotations:
+    {{- include "kc.hook" (dict "phase" "PostSync" "wave" "-1") | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: [secrets]
+    resourceNames: [{{ $t.name }}]
+    verbs: [get, patch]
+  - apiGroups: [""]
+    resources: [secrets]
+    verbs: [create]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ $name }}-{{ $t.name }}
+  namespace: {{ $t.namespace }}
+  labels:
+    {{- include "kc.labels" $ | nindent 4 }}
+  annotations:
+    {{- include "kc.hook" (dict "phase" "PostSync" "wave" "-1") | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ $name }}-{{ $t.name }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ $name }}
+    namespace: {{ $.Release.Namespace }}
+{{- end }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "kc.labels" . | nindent 4 }}
+  annotations:
+    {{- include "kc.hook" (dict "phase" "PostSync" "wave" "0") | nindent 4 }}
+spec:
+  backoffLimit: 2
+  activeDeadlineSeconds: 600
+  template:
+    metadata:
+      labels:
+        {{- include "kc.labels" . | nindent 8 }}
+        app.kubernetes.io/component: idp-certificate
+    spec:
+      serviceAccountName: {{ $name }}
+      restartPolicy: Never
+      securityContext:
+        runAsUser: 65534
+        runAsGroup: 65534
+        runAsNonRoot: true
+      containers:
+        - name: copy
+          image: {{ .Values.secretGenerator.image | quote }}
+          env:
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            # "source:namespace:secret" séparés par des espaces
+            - name: TARGETS
+              value: {{ range $i, $t := $targets }}{{ if $i }} {{ end }}{{ $t.source }}:{{ $t.namespace }}:{{ $t.name }}{{ end }}
+            - name: HOME
+              value: /tmp            # cache kubectl
+          command:
+            - sh
+            - -ec
+            - |
+              for entry in $TARGETS; do
+                SOURCE="${entry%%:*}"; rest="${entry#*:}"; NS="${rest%%:*}"; SECRET="${rest#*:}"
+                # Certificat seul (public), sans en-têtes ni retours à la ligne
+                CERT="$(kubectl -n "$NAMESPACE" get secret "$SOURCE" -o jsonpath='{.data.tls\.crt}' \
+                  | base64 -d | sed '/-----/d' | tr -d '\n')"
+                [ -n "$CERT" ] || { echo "ERREUR : $SOURCE sans tls.crt"; exit 1; }
+                kubectl -n "$NS" create secret generic "$SECRET" --from-literal=certificate="$CERT" \
+                  --dry-run=client -o yaml | kubectl apply -f -
+                echo "Certificat $SOURCE copié dans $NS/$SECRET"
+              done
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 128Mi
+{{- end }}

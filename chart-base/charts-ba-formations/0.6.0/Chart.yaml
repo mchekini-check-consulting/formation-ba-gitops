@@ -1,0 +1,9 @@
+apiVersion: v2
+name: charts-ba-formations
+description: Déploie sur EKS les applications décrites dans le helm.yaml d'un dépôt projet
+version: 0.6.0
+dependencies:
+  # Bases PostgreSQL et sauvegardes S3 (applications[].database)
+  - name: pg-lib
+    version: 0.2.0
+    repository: file://../../pg-lib/0.2.0
