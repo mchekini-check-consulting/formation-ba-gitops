@@ -44,7 +44,7 @@ Un backend absent de `api` reste joignable seulement dans le cluster.
   métier ne peuvent pas créer d'IngressRoute (liste blanche de leurs AppProjects).
 - DNS : un IngressRoute ne porte pas l'adresse du NLB ; `api.<env>` est publié par
   external-dns (source `service`) depuis l'annotation
-  `external-dns.alpha.kubernetes.io/hostname` du Service de Traefik
+  `external-dns.kubernetes.io/hostname` du Service de Traefik
   (`values/<env>/traefik.yaml`).
 - Certificat : wildcard `*.<env>.check-consulting.net` de la plateforme
   (`values/dev/cert-manager.yaml`), servi par défaut par Traefik (`tls: {}`).
