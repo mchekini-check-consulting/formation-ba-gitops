@@ -1,8 +1,0 @@
-{{- /* Le nom de l'Application (release) est le nom du Cluster et sa clé dans
-       databases.clusters ; le namespace de l'Application est le sien. */}}
-{{- $ctx := include "pg-lib.config" (dict
-      "Values" .Values
-      "name" .Release.Name
-      "namespace" .Release.Namespace
-      "cluster" .Release.Name) | fromYaml }}
-{{- include "pg-lib.all" $ctx }}

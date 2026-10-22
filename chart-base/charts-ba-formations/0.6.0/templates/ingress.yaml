@@ -1,14 +1,17 @@
+{{- /* Exposition des frontends (et de toute application qui n'est pas un backend,
+       avec ingress.enabled) : un host propre par application,
+         https://<application>.<project>.<env>.<domain>  (ou ingress.host)
+       couvert par le certificat du projet (certificate.yaml).
+       Les backends passent par la passerelle de l'environnement : gateway.yaml. */}}
 {{- range $app := .Values.applications }}
 {{- $ing := $app.ingress | default dict }}
-{{- if $ing.enabled }}
+{{- if and $ing.enabled (ne $app.type "backend") }}
 {{- $ctx := dict "app" $app "root" $ }}
+{{- $host := include "gba.frontHost" $ctx }}
 {{- $path := $ing.path | default "/" }}
-{{- /* Un host par application : <application>.<project>.<env>.<domain>,
-       couvert par le certificat *.<project>.<env>.<domain> (certificate.yaml) */}}
-{{- $host := $ing.host | default (printf "%s.%s.%s.%s" $app.name $.Values.project $.Values.env $.Values.domain) }}
 {{- if $ing.stripPrefix }}
 ---
-# Retire le préfixe (ex. /api) avant d'envoyer la requête au pod
+# Retire le préfixe avant d'envoyer la requête au pod
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:

@@ -1,3 +1,0 @@
-# Aucune valeur propre : tout vient de gitops/values/<common|env>/databases.yaml
-# (tools.<outil>.databases: true), plus databases.env passé par l'Application.
-databases: {}

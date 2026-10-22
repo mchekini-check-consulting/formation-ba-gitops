@@ -1,0 +1,80 @@
+{{- /* Exposition des backends (type: backend, ingress.enabled) par la passerelle
+       unique de l'environnement :
+         https://api.<env>.<domain>/<project>/<application>/...
+       - l'environnement est choisi par le Host, le projet et l'application par le chemin
+       - le préfixe /<project>/<application> est retiré avant d'atteindre le pod
+       - certificat : wildcard *.<env>.<domain> de la plateforme (TLS store par défaut
+         de Traefik), d'où l'absence de secretName
+       - CORS : seuls les frontends du même projet et du même environnement peuvent
+         appeler le backend depuis le navigateur
+       ingress.host, path et stripPrefix ne s'appliquent pas aux backends. */}}
+{{- $origins := list }}
+{{- range $app := .Values.applications }}
+{{- if and ($app.ingress | default dict).enabled (ne $app.type "backend") }}
+{{- $origins = append $origins (printf "https://%s" (include "gba.frontHost" (dict "app" $app "root" $))) }}
+{{- end }}
+{{- end }}
+{{- range $app := .Values.applications }}
+{{- if and ($app.ingress | default dict).enabled (eq $app.type "backend") }}
+{{- $ctx := dict "app" $app "root" $ }}
+{{- $host := include "gba.apiHost" $ }}
+{{- $path := printf "/%s/%s" $.Values.project $app.name }}
+{{- $middlewares := list (printf "%s-%s-strip@kubernetescrd" $.Release.Namespace $app.name) }}
+---
+# Retire /<project>/<application> : le pod reçoit /items, pas /<project>/backend/items
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: {{ $app.name }}-strip
+  labels:
+    {{- include "gba.labels" $ctx | nindent 4 }}
+spec:
+  stripPrefix:
+    prefixes:
+      - {{ $path }}
+{{- if $origins }}
+{{- $middlewares = append $middlewares (printf "%s-%s-cors@kubernetescrd" $.Release.Namespace $app.name) }}
+---
+# CORS : Traefik répond lui-même aux requêtes de pré-vérification OPTIONS
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: {{ $app.name }}-cors
+  labels:
+    {{- include "gba.labels" $ctx | nindent 4 }}
+spec:
+  headers:
+    accessControlAllowOriginList:
+      {{- toYaml $origins | nindent 6 }}
+    accessControlAllowMethods: [GET, POST, PUT, PATCH, DELETE, OPTIONS]
+    accessControlAllowHeaders: [Content-Type, Authorization]
+    accessControlMaxAge: 600
+    addVaryHeader: true
+{{- end }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $app.name }}
+  labels:
+    {{- include "gba.labels" $ctx | nindent 4 }}
+  annotations:
+    traefik.ingress.kubernetes.io/router.middlewares: {{ join "," $middlewares }}
+spec:
+  ingressClassName: {{ $.Values.ingressClassName }}
+  tls:
+    - hosts:
+        - {{ $host }}
+  rules:
+    - host: {{ $host }}
+      http:
+        paths:
+          - path: {{ $path }}
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $app.name }}
+                port:
+                  name: http
+{{- end }}
+{{- end }}

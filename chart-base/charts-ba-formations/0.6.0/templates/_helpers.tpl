@@ -19,6 +19,18 @@ tier: {{ .app.type }}
 app.kubernetes.io/name: {{ .app.name }}
 {{- end -}}
 
+{{/* Host d'un frontend : ingress.host, sinon <application>.<project>.<env>.<domain>.
+     Entrée : dict "app" <app> "root" $ */}}
+{{- define "gba.frontHost" -}}
+{{- $v := .root.Values }}
+{{- (.app.ingress | default dict).host | default (printf "%s.%s.%s.%s" .app.name $v.project $v.env $v.domain) }}
+{{- end -}}
+
+{{/* Passerelle des backends de l'environnement : api.<env>.<domain>. Entrée : $ */}}
+{{- define "gba.apiHost" -}}
+api.{{ .Values.env }}.{{ .Values.domain }}
+{{- end -}}
+
 {{/* Secret TLS du projet (wildcard *.<project>.<env>.<domain>). Entrée : $ */}}
 {{- define "gba.tlsSecret" -}}
 {{ .Values.project }}-tls

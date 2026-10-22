@@ -1,4 +1,0 @@
-apiVersion: v2
-name: charts-ba-formations
-description: Déploie sur EKS les applications décrites dans le helm.yaml d'un dépôt projet
-version: 0.3.0

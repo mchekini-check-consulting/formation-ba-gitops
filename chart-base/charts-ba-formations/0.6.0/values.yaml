@@ -2,8 +2,11 @@
 env: ""
 project: ""
 
-# Host par défaut des Ingress : <application>.<project>.<env>.<domain>
-# (enregistrement DNS créé par external-dns vers le NLB Traefik)
+# Hosts des Ingress (enregistrements DNS créés par external-dns vers le NLB Traefik) :
+#   frontend : <application>.<project>.<env>.<domain>
+#   backend  : passerelle api.<env>.<domain>/<project>/<application> (préfixe retiré,
+#              CORS ouvert aux seuls frontends du projet) ; ingress.host, path et
+#              stripPrefix ne s'appliquent pas aux backends
 domain: check-consulting.net
 ingressClassName: traefik
 
