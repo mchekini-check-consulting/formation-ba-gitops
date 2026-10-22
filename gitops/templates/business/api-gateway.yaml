@@ -1,0 +1,36 @@
+{{- /* Passerelle API de chaque environnement (chart-base/<business.charts.gateway>) :
+       une Application api-gateway-<env>, namespace api-gateway-<env>, un seul
+       IngressRoute api.<env>.<domaine> qui route vers les backends listés dans
+       business.projects[].api (Services ClusterIP, sans Ingress).
+       Projet ArgoCD de la plateforme : les projets métier ne créent pas d'IngressRoute.
+       Wave 51 : avec les Applications métier. */}}
+{{- with .Values.business }}
+{{- if .enabled }}
+{{- range $env := .envs }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: api-gateway-{{ $env.name }}
+  namespace: {{ $.Values.argocdNamespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "51"
+spec:
+  project: {{ $.Values.project }}
+  source:
+    repoURL: {{ $.Values.chartBase.repoURL }}
+    targetRevision: {{ $.Values.chartBase.targetRevision }}
+    path: {{ $.Values.chartBase.path }}/{{ required "business.charts.gateway requis" $.Values.business.charts.gateway }}
+    helm:
+      valuesObject:
+        env: {{ $env.name }}
+        projects:
+          {{- toYaml $.Values.business.projects | nindent 10 }}
+  destination:
+    name: {{ $env.cluster }}
+    namespace: api-gateway-{{ $env.name }}
+  syncPolicy:
+    {{- toYaml $.Values.syncPolicy | nindent 4 }}
+{{- end }}
+{{- end }}
+{{- end }}

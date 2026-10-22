@@ -10,11 +10,15 @@
 provider:
   name: aws
 
-# Seuls les Ingress sont publiés : Traefik renseigne leur status avec le DNS
-# du NLB (providers.kubernetesIngress.publishedService), external-dns crée
-# un enregistrement ALIAS vers ce NLB.
+# Ingress : Traefik renseigne leur status avec le DNS du NLB
+# (providers.kubernetesIngress.publishedService), external-dns crée un
+# enregistrement ALIAS vers ce NLB.
+# Service : uniquement ceux annotés external-dns.alpha.kubernetes.io/hostname,
+# c'est-à-dire le Service de Traefik pour les passerelles api.<env>
+# (values/<env>/traefik.yaml), routées par IngressRoute (sans adresse de NLB).
 sources:
   - ingress
+  - service
 
 # sync : crée, met à jour et supprime, mais uniquement les enregistrements
 # marqués comme les siens (registre TXT + txtOwnerId propre à chaque cluster)

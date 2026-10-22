@@ -10,6 +10,10 @@ ingressClass:
 providers:
   kubernetesCRD:
     enabled: true
+    # Passerelle API (chart api-gateway) : son IngressRoute route vers les Services
+    # des namespaces <env>-<projet>. Seule la plateforme crée des IngressRoute :
+    # absents de la liste blanche des AppProjects métier.
+    allowCrossNamespace: true
   kubernetesIngress:
     enabled: true
     publishedService:

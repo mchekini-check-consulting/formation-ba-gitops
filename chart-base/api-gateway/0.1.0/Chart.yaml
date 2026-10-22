@@ -1,0 +1,7 @@
+apiVersion: v2
+name: api-gateway
+description: >-
+  Passerelle API d'un environnement, sur Traefik : un seul point d'entrée
+  api.<env>.<domain> qui route vers les Services ClusterIP des backends métier.
+type: application
+version: 0.1.0
