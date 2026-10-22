@@ -13,7 +13,8 @@ provider:
 # Ingress : Traefik renseigne leur status avec le DNS du NLB
 # (providers.kubernetesIngress.publishedService), external-dns crée un
 # enregistrement ALIAS vers ce NLB.
-# Service : uniquement ceux annotés external-dns.alpha.kubernetes.io/hostname,
+# Service : uniquement ceux annotés external-dns.kubernetes.io/hostname (préfixe par
+# défaut depuis external-dns 0.23 ; l'ancien external-dns.alpha.kubernetes.io/ est ignoré),
 # c'est-à-dire le Service de Traefik pour les passerelles api.<env>
 # (values/<env>/traefik.yaml), routées par IngressRoute (sans adresse de NLB).
 sources:
