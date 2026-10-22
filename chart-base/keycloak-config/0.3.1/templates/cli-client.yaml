@@ -1,0 +1,97 @@
+{{- /* Garantit le client de service de keycloak-config-cli (realm master) avant l'import
+       (hook PreSync, après la création de son secret) :
+         - le client répond (client_credentials) : rien à faire
+         - sinon (1re installation, migration) : création avec le compte de démarrage,
+           secret = Secret keycloak.client.secret, rôle admin du realm master.
+       Ensuite l'import (keycloak-config-cli) se connecte avec ce client et peut
+       désactiver le compte de démarrage (master.bootstrapAdminEnabled). */}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "kc.fullname" . }}-cli-client
+  labels:
+    {{- include "kc.labels" . | nindent 4 }}
+  annotations:
+    {{- include "kc.hook" (dict "phase" "PreSync" "wave" "1") | nindent 4 }}
+spec:
+  backoffLimit: 2
+  activeDeadlineSeconds: 600
+  template:
+    metadata:
+      labels:
+        {{- include "kc.labels" . | nindent 8 }}
+        app.kubernetes.io/component: cli-client
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsUser: 65534
+        runAsGroup: 65534
+        runAsNonRoot: true
+      containers:
+        - name: ensure
+          image: {{ .Values.secretGenerator.image | quote }}
+          env:
+            - name: KEYCLOAK_URL
+              value: {{ .Values.keycloak.url | quote }}
+            - name: CLIENT_ID
+              value: {{ .Values.keycloak.client.id | quote }}
+            - name: CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.keycloak.client.secret.name }}
+                  key: {{ .Values.keycloak.client.secret.key }}
+            - name: ADMIN_USER
+              value: {{ .Values.keycloak.bootstrapAdmin.user | quote }}
+            - name: ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.keycloak.bootstrapAdmin.passwordSecret.name }}
+                  key: {{ .Values.keycloak.bootstrapAdmin.passwordSecret.key }}
+                  optional: true
+          command:
+            - sh
+            - -ec
+            - |
+              TOKEN_URL="$KEYCLOAK_URL/realms/master/protocol/openid-connect/token"
+              API="$KEYCLOAK_URL/admin/realms/master"
+              until curl -fsS -o /dev/null "$KEYCLOAK_URL/realms/master"; do
+                echo "Keycloak indisponible, nouvel essai dans 10 s"; sleep 10
+              done
+              client_ok() {
+                curl -fsS -o /dev/null -d grant_type=client_credentials -d client_id="$CLIENT_ID" \
+                  --data-urlencode client_secret="$CLIENT_SECRET" "$TOKEN_URL"
+              }
+              if client_ok; then
+                echo "Client $CLIENT_ID opérationnel"; exit 0
+              fi
+              echo "Client $CLIENT_ID absent ou secret différent : création avec le compte de démarrage"
+              TOKEN="$(curl -fsS -d grant_type=password -d client_id=admin-cli -d username="$ADMIN_USER" \
+                --data-urlencode password="$ADMIN_PASSWORD" "$TOKEN_URL" | jq -er .access_token)" || {
+                echo "ERREUR : client $CLIENT_ID inutilisable et compte de démarrage $ADMIN_USER refusé (désactivé ?)."
+                echo "Secours : un admin nominatif réactive $ADMIN_USER (console, realm master > Users),"
+                echo "puis relancer la synchronisation de keycloak-config."
+                exit 1
+              }
+              AUTH="Authorization: Bearer $TOKEN"
+              BODY="$(jq -n --arg id "$CLIENT_ID" --arg s "$CLIENT_SECRET" '{clientId: $id, name: "keycloak-config-cli (GitOps)",
+                enabled: true, protocol: "openid-connect", publicClient: false, clientAuthenticatorType: "client-secret",
+                secret: $s, serviceAccountsEnabled: true, standardFlowEnabled: false, implicitFlowEnabled: false,
+                directAccessGrantsEnabled: false}')"
+              ID="$(curl -fsS -H "$AUTH" "$API/clients?clientId=$CLIENT_ID" | jq -r '.[0].id // empty')"
+              if [ -z "$ID" ]; then
+                curl -fsS -H "$AUTH" -H 'Content-Type: application/json' -d "$BODY" "$API/clients"
+                ID="$(curl -fsS -H "$AUTH" "$API/clients?clientId=$CLIENT_ID" | jq -er '.[0].id')"
+              else
+                curl -fsS -X PUT -H "$AUTH" -H 'Content-Type: application/json' -d "$BODY" "$API/clients/$ID"
+              fi
+              SA="$(curl -fsS -H "$AUTH" "$API/clients/$ID/service-account-user" | jq -er .id)"
+              ROLE="$(curl -fsS -H "$AUTH" "$API/roles/admin")"
+              curl -fsS -H "$AUTH" -H 'Content-Type: application/json' -d "[$ROLE]" "$API/users/$SA/role-mappings/realm"
+              client_ok
+              echo "Client $CLIENT_ID créé (rôle admin du realm master)"
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 128Mi

@@ -1,0 +1,136 @@
+{{- /* Import des realms par keycloak-config-cli.
+       Nom = hash de la configuration : une modification des values crée un nouveau
+       Job (l'ancien est supprimé par ArgoCD), sinon rien ne se relance.
+       La version du chart entre aussi dans le hash : ses labels sont dans le modèle de
+       pod, immuable sur un Job existant (une montée de version relance donc l'import).
+       Relancer à l'identique (ex. après un échec) : supprimer le Job, ArgoCD le recrée.
+       Suppressions : un client, un rôle ou un groupe retiré des values est supprimé de
+       Keycloak (seulement ceux créés par keycloak-config-cli) ; un utilisateur jamais.
+       Connexion : client de service keycloak.client (garanti par le hook cli-client).
+       Clés de signature fixées : injectées dans les realms par l'init container
+       (jamais dans la ConfigMap), depuis les Secrets cert-manager. */}}
+{{- $hash := print .Chart.Version (include "kc.realmFiles" .) | sha256sum | trunc 8 }}
+{{- $clients := include "kc.confidentialClients" . | fromYamlArray }}
+{{- $signing := include "kc.signingRealms" . | fromYamlArray }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "kc.fullname" . }}-{{ $hash }}
+  labels:
+    {{- include "kc.labels" . | nindent 4 }}
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        {{- include "kc.labels" . | nindent 8 }}
+        app.kubernetes.io/component: import
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsUser: 65534
+        runAsGroup: 65534
+        runAsNonRoot: true
+        fsGroup: 65534                    # lecture des clés (Secrets en 0440)
+      initContainers:
+        # Realms à importer = ConfigMap + clé de signature fixée (provider rsa, priorité 200)
+        - name: prepare
+          image: {{ .Values.secretGenerator.image | quote }}
+          env:
+            - name: SIGNING_REALMS
+              value: {{ range $i, $s := $signing }}{{ if $i }} {{ end }}{{ $s.realm }}{{ end }}
+          command:
+            - sh
+            - -ec
+            - |
+              cp /config/*.json /import/
+              for r in $SIGNING_REALMS; do
+                jq --rawfile key "/keys/$r/tls.key" --rawfile crt "/keys/$r/tls.crt" '
+                  .components = ((.components // {}) + {"org.keycloak.keys.KeyProvider": [{
+                    name: "gitops-rsa-signing", providerId: "rsa", subComponents: {},
+                    config: {priority: ["200"], enabled: ["true"], active: ["true"],
+                             algorithm: ["RS256"], keyUse: ["SIG"],
+                             privateKey: [$key], certificate: [$crt]}}]})' \
+                  "/config/$r.json" > "/import/$r.json"
+                echo "Realm $r : clé de signature fixée injectée"
+              done
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 128Mi
+          volumeMounts:
+            - name: realms
+              mountPath: /config
+              readOnly: true
+            - name: import
+              mountPath: /import
+            {{- range $signing }}
+            - name: key-{{ .realm }}
+              mountPath: /keys/{{ .realm }}
+              readOnly: true
+            {{- end }}
+      containers:
+        - name: import
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: KEYCLOAK_URL
+              value: {{ .Values.keycloak.url | quote }}
+            - name: KEYCLOAK_GRANTTYPE
+              value: client_credentials
+            - name: KEYCLOAK_CLIENTID
+              value: {{ .Values.keycloak.client.id | quote }}
+            # Aussi lu par master.json : $(env:KEYCLOAK_CLIENTSECRET)
+            - name: KEYCLOAK_CLIENTSECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.keycloak.client.secret.name }}
+                  key: {{ .Values.keycloak.client.secret.key }}
+            - name: KEYCLOAK_AVAILABILITYCHECK_ENABLED
+              value: "true"
+            - name: KEYCLOAK_AVAILABILITYCHECK_TIMEOUT
+              value: {{ .Values.keycloak.availabilityTimeout | quote }}
+            - name: IMPORT_FILES_LOCATIONS
+              value: /import/*.json
+            # $(env:...) dans les realms : mot de passe initial, secrets des clients
+            - name: IMPORT_VARSUBSTITUTION_ENABLED
+              value: "true"
+            - name: USER_INITIAL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.users.initialPasswordSecret.name }}
+                  key: {{ .Values.users.initialPasswordSecret.key }}
+            {{- range $clients }}
+            - name: {{ .env }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .secret }}
+                  key: client-secret
+            {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: import
+              mountPath: /import
+              readOnly: true
+      volumes:
+        - name: realms
+          configMap:
+            name: {{ include "kc.fullname" . }}-realms
+        - name: import
+          emptyDir:
+            medium: Memory                # clés privées : jamais sur disque
+            sizeLimit: 16Mi
+        {{- range $signing }}
+        - name: key-{{ .realm }}
+          secret:
+            secretName: {{ .secret }}
+            defaultMode: 0440
+            items:
+              - key: tls.key
+                path: tls.key
+              - key: tls.crt
+                path: tls.crt
+        {{- end }}
