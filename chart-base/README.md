@@ -15,7 +15,8 @@ dépôt Helm en ligne.
 |---|---|---|
 | [pg-lib](pg-lib/README.md) | bibliothèque : base PostgreSQL + sauvegardes S3 | pg-cluster, charts-ba-formations |
 | [pg-cluster](pg-cluster/README.md) | base d'un outil de la plateforme | Applications `<outil>-db` |
-| [charts-ba-formations](charts-ba-formations/README.md) | applications des projets métier (Deployment, Service, Ingress, base) | ApplicationSet métier |
+| [charts-ba-formations](charts-ba-formations/README.md) | applications des projets métier (Deployment, Service, Ingress des frontends, base) | ApplicationSet métier |
+| [api-gateway](api-gateway/README.md) | passerelle `api.<env>` : un IngressRoute Traefik vers les backends (ClusterIP) | Applications `api-gateway-<env>` |
 | [kargo-pipelines](kargo-pipelines/README.md) | promotion des images entre environnements | Application `kargo-pipelines` |
 | [keycloak-config](keycloak-config/README.md) | realms, clients, groupes, utilisateurs Keycloak | Application `keycloak-config` |
 | [sonarqube-config](sonarqube-config/README.md) | groupes et permissions SonarQube | Application `sonarqube-config` |
@@ -29,7 +30,7 @@ dépôt Helm en ligne.
    deux versions différentes.
 2. **La version déployée se choisit dans gitops**, jamais ici :
    - outils : `gitops/values/<env>/cluster.yaml` (`tools.<outil>.version`)
-   - projets métier : `gitops/values.yaml` (`business.charts.app`, `business.charts.pipelines`)
+   - projets métier : `gitops/values.yaml` (`business.charts.app`, `business.charts.pipelines`, `business.charts.gateway`)
 3. **Avant de changer de version, comparer le rendu** avec les vraies values :
    ```bash
    cd chart-base

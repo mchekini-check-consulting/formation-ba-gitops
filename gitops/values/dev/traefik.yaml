@@ -3,3 +3,10 @@ deployment:
 
 podDisruptionBudget:
   enabled: false
+
+# Passerelles API des environnements de ce cluster (chart api-gateway) : DNS publié
+# par external-dns depuis ce Service (ALIAS vers le NLB). Un environnement de plus
+# sur ce cluster = un nom de plus ici et dans le wildcard (values/dev/cert-manager.yaml).
+service:
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: api.dev.check-consulting.net,api.qualif.check-consulting.net

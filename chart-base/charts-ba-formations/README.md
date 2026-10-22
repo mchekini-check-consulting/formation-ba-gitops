@@ -22,7 +22,7 @@ Version utilisée : `business.charts.app` dans `gitops/values.yaml`.
 | `deployment.yaml` | Deployment | chaque application ; `tag`, `replicas`, `envList` par environnement |
 | `service.yaml` | Service `<application>` | chaque application |
 | `ingress.yaml` | Ingress `<application>.<projet>.<env>.<domaine>` (+ Middleware strip) | frontends avec `ingress.enabled` |
-| `gateway.yaml` | Ingress `api.<env>.<domaine>/<projet>/<application>`, Middlewares strip et CORS | backends avec `ingress.enabled` |
+| (aucun) | pas d'Ingress pour les backends depuis 0.7.0 : Service ClusterIP, exposé par la passerelle [api-gateway](../api-gateway/README.md) | backends listés dans `business.projects[].api` |
 | `certificate.yaml` | Certificate `*.<projet>.<env>.<domaine>` | si au moins un frontend exposé |
 | `database.yaml` | Cluster `app-db`, une base par application avec `database` (via pg-lib) | applications avec `database` |
 | `_helpers.tpl` | valeur par environnement, labels, hosts, variables de connexion | |
@@ -32,13 +32,13 @@ Version utilisée : `business.charts.app` dans `gitops/values.yaml`.
 ```yaml
 applications:
   - name: backend                 # nom du Deployment, du Service et de l'Ingress
-    type: backend                 # backend : passerelle api.<env>... ; sinon host propre
+    type: backend                 # backend : jamais d'Ingress (passerelle api-gateway) ; sinon host propre
     image: <registre>/<projet>/backend
     tag: {dev: abc1234, qualif: abc1234}   # écrit par Kargo
     containerPort: 8080
     replicas: {dev: 1, prod: 2}   # valeur unique ou map par environnement
     service: {port: 80}
-    ingress: {enabled: true}      # frontend : host, path, stripPrefix possibles
+    # ingress : frontends seulement (enabled, host, path, stripPrefix)
     database: {name: ma_base}     # ou true (base = nom de l'application)
     envList:
       - key: LOG_LEVEL
@@ -53,8 +53,8 @@ Variables injectées par `database` (avant `envList`) : `PGHOST`, `PGPORT`,
 
 ```bash
 cd chart-base
-helm dependency build charts-ba-formations/0.6.0
-helm template formation-ba-scpi-invest charts-ba-formations/0.6.0 \
+helm dependency build charts-ba-formations/0.7.0
+helm template formation-ba-scpi-invest charts-ba-formations/0.7.0 \
   -n dev-formation-ba-scpi-invest \
   -f ../../formation-ba-scpi-invest/helm.yaml \
   -f ../gitops/values/common/databases.yaml -f ../gitops/values/dev/databases.yaml \
@@ -65,6 +65,5 @@ helm template formation-ba-scpi-invest charts-ba-formations/0.6.0 \
 
 - Un `tag` vide pour l'environnement fait échouer le rendu : remplir `tag.<env>`
   avant d'ajouter un environnement.
-- Le CORS de la passerelle n'autorise que les frontends du même `helm.yaml`.
-- La passerelle `api.<env>` utilise le wildcard de la plateforme : un nouvel
-  environnement doit y être ajouté (`values/dev/cert-manager.yaml`).
+- Exposer un backend se décide dans gitops (`business.projects[].api`), pas dans
+  `helm.yaml` : la clé `ingress` d'un backend est ignorée.
