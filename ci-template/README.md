@@ -22,8 +22,8 @@ Pull request (`pr.yaml`) :
 | `setup`            | détecte la stack (node / maven / python), installe runtime + dépendances |
 | `lint`             | `make lint`                                                              |
 | `gitleaks`         | secrets dans les commits de la PR                                        |
-| `unit-test`        | `make test-unit` (tests + rapport de couverture)                         |
-| `sonarqube`        | analyse du composant + attente du quality gate (même job que unit-test)  |
+| `unit-test`        | `make test-unit` (tests + rapport de couverture, publiés en artifact)    |
+| `sonarqube`        | analyse du composant + attente du quality gate (job après unit-test)     |
 | `integration-test` | `make test-integration`                                                  |
 
 Contrat de chaque composant (dossier avec Dockerfile) :

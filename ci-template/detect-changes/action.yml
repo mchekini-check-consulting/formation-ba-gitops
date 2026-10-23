@@ -36,5 +36,7 @@ runs:
         else
           CHANGED=$ALL   # premier push ou all=true : tout prendre
         fi
-        echo "components=$(jq -cn '$ARGS.positional' --args $CHANGED)" >> "$GITHUB_OUTPUT"
+        COMPONENTS=$(jq -cn '$ARGS.positional' --args $CHANGED)
+        echo "Composants détectés : $COMPONENTS"
+        echo "components=$COMPONENTS" >> "$GITHUB_OUTPUT"
         echo "sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
