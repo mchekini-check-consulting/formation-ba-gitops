@@ -22,7 +22,7 @@ access: {}
 
 # Images retenues : tags = sha court du commit (7 caractères, écrit par la CI).
 warehouse:
-  interval: 5m
+  interval: 1m
   allowTagsRegexes:
     - ^[0-9a-f]{7}$
   discoveryLimit: 10
