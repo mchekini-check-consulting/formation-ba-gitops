@@ -1,5 +1,5 @@
 # Analyse SonarQube d'un composant puis attente du quality gate : échoue si le gate est rouge.
-# À lancer dans le job unit-test, après l'action unit-test (rapport de couverture sur place).
+# Job à lancer après unit-test : récupère ses rapports (artifact unit-test-<composant>).
 # Projet Sonar : <dépôt>-<composant>. Sources, tests et chemins des rapports :
 # <composant>/sonar-project.properties. Prérequis : checkout avec fetch-depth: 0.
 name: sonarqube
@@ -18,6 +18,10 @@ inputs:
 runs:
   using: composite
   steps:
+    - uses: actions/download-artifact@v4
+      with:
+        name: unit-test-${{ inputs.component }}
+        path: ${{ inputs.component }}
     - uses: SonarSource/sonarqube-scan-action@v5
       env:
         SONAR_TOKEN: ${{ inputs.token }}
