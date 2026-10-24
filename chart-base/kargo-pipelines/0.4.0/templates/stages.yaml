@@ -1,0 +1,60 @@
+{{- /* Une Stage par environnement, pour le projet courant.
+       Promotion : clone de main -> tag de chaque composant dans helm.yaml
+       (applications.<index>.tag.<env>, index = position dans applications,
+       lue depuis le helm.yaml du dépôt lui-même : toujours en phase) -> commit
+       -> push sur main -> sync de l'Application ArgoCD <env>-<dépôt> (annotation
+       kargo.akuity.io/authorized-stage posée par l'ApplicationSet). */}}
+{{- range $i, $env := .Values.envs }}
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: {{ $env.name }}
+  namespace: {{ $.Values.project }}
+spec:
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: {{ $.Values.project }}
+      sources:
+        {{- if eq $i 0 }}
+        direct: true
+        {{- else }}
+        stages:
+          - {{ (index $.Values.envs (sub $i 1)).name }}
+        {{- end }}
+  promotionTemplate:
+    spec:
+      vars:
+        - name: repoURL
+          value: {{ $.Values.github }}/{{ $.Values.project }}.git
+      steps:
+        - uses: git-clone
+          config:
+            repoURL: '{{ include "kp.expr" "vars.repoURL" }}'
+            checkout:
+              - branch: {{ $.Values.branch }}
+                path: ./repo
+        - uses: yaml-update
+          config:
+            path: ./repo/helm.yaml
+            updates:
+              {{- range $idx, $app := $.Values.applications }}
+              # quote() : sinon un sha tout en chiffres (7616898) est converti en
+              # nombre par Kargo et écrit 7.616898e+06
+              - key: applications.{{ $idx }}.tag.{{ $env.name }}
+                value: '{{ include "kp.expr" (printf "quote(imageFrom(%q).Tag)" (include "kp.image" (dict "root" $ "component" $app.name))) }}'
+              {{- end }}
+        - uses: git-commit
+          config:
+            path: ./repo
+            message: 'promote({{ $env.name }}):{{ range $app := $.Values.applications }} {{ $app.name }}={{ include "kp.expr" (printf "imageFrom(%q).Tag" (include "kp.image" (dict "root" $ "component" $app.name))) }}{{ end }}'
+        - uses: git-push
+          config:
+            path: ./repo
+            targetBranch: {{ $.Values.branch }}
+        - uses: argocd-update
+          config:
+            apps:
+              - name: {{ $env.name }}-{{ $.Values.project }}
+{{- end }}
