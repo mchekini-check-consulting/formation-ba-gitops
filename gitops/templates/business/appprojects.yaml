@@ -30,6 +30,7 @@ spec:
   namespaceResourceWhitelist:
     - { group: apps, kind: Deployment }
     - { group: "", kind: Service }
+    - { group: "", kind: ConfigMap }                  # routes du pod gateway (gateway-config.yaml)
     - { group: networking.k8s.io, kind: Ingress }
     - { group: traefik.io, kind: Middleware }
     - { group: cert-manager.io, kind: Certificate }   # TLS *.<projet>.<env>.<domaine>
