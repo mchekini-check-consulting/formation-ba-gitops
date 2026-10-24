@@ -1,20 +1,17 @@
-{{- /* Routes du pod "gateway" (type: gateway) d'un projet : une par backend
-       (type: backend) DU MÊME helm.yaml, préfixe retiré, vers son Service
+{{- /* Routes du pod "gateway" (type: gateway) d'un projet.
+       Par défaut (gatewayConfig absent) : une route par backend (type:
+       backend) DU MÊME helm.yaml, préfixe retiré, vers son Service
        ClusterIP. CORS : origines des applications qui ne sont ni backend ni
        gateway (frontends), sur leur host par défaut.
+       Si gatewayConfig est fourni (fichier gateway.yaml à la racine du
+       dépôt projet, lu par l'ApplicationSet comme values Helm optionnel) :
+       on l'utilise tel quel (routage/CORS/etc. écrits par l'équipe), rendu
+       avec tpl pour permettre {{ "{{ .project }}" }}/{{ "{{ .env }}" }}/{{ "{{ .domain }}" }}
+       (une seule configuration valable sur les 4 environnements).
        Remplace la passerelle partagée api-gateway : plus besoin de dupliquer
-       une liste "components"/"api" dans gitops, tout vient de CE helm.yaml. */}}
+       une liste "components"/"api" dans gitops, tout vient du dépôt projet. */}}
 {{- range $gw := .Values.applications }}
 {{- if eq $gw.type "gateway" }}
-{{- $backends := list }}
-{{- $origins := list }}
-{{- range $app := $.Values.applications }}
-{{- if eq $app.type "backend" }}
-{{- $backends = append $backends $app }}
-{{- else if ne $app.type "gateway" }}
-{{- $origins = append $origins $app }}
-{{- end }}
-{{- end }}
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -23,6 +20,19 @@ metadata:
   labels:
     {{- include "gba.labels" (dict "app" $gw "root" $) | nindent 4 }}
 data:
+  {{- if $.Values.gatewayConfig }}
+  routes.yml: |
+    {{- tpl $.Values.gatewayConfig (dict "project" $.Values.project "env" $.Values.env "domain" $.Values.domain) | nindent 4 }}
+  {{- else }}
+  {{- $backends := list }}
+  {{- $origins := list }}
+  {{- range $app := $.Values.applications }}
+  {{- if eq $app.type "backend" }}
+  {{- $backends = append $backends $app }}
+  {{- else if ne $app.type "gateway" }}
+  {{- $origins = append $origins $app }}
+  {{- end }}
+  {{- end }}
   routes.yml: |
     http:
       routers:
@@ -57,5 +67,6 @@ data:
             servers:
               - url: "http://{{ .name }}:{{ (.service).port | default 80 }}"
         {{- end }}
+  {{- end }}
 {{- end }}
 {{- end }}

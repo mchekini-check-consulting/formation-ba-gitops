@@ -52,8 +52,12 @@ spec:
           path: {{ $.Values.chartBase.path }}/{{ required "business.charts.app requis" .charts.app }}
           helm:
             releaseName: '{{`{{ .project }}`}}'
+            # gateway.yaml : configuration personnalisée optionnelle du pod
+            # gateway (routage, CORS...). Absent dans la plupart des projets.
+            ignoreMissingValueFiles: true
             valueFiles:
               - $app/helm.yaml
+              - $app/gateway.yaml
               - $values/{{ $.Values.gitops.path }}/values/common/databases.yaml
               - $values/{{ $.Values.gitops.path }}/values/{{`{{ .env }}`}}/databases.yaml
             parameters:
