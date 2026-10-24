@@ -32,3 +32,11 @@ databases: {}
 # conteneur : PGHOST PGPORT PGDATABASE PGUSER PGPASSWORD DATABASE_URL
 # SPRING_DATASOURCE_URL SPRING_DATASOURCE_USERNAME SPRING_DATASOURCE_PASSWORD
 applications: []
+
+# Fourni, optionnellement, par gateway.yaml à la racine du dépôt projet (lu par
+# l'ApplicationSet comme values Helm, ignoré s'il est absent). Chaîne passée à
+# tpl avec {{ "{{ .project }}" }}/{{ "{{ .env }}" }}/{{ "{{ .domain }}" }} disponibles : routage/CORS/etc.
+# personnalisés du pod gateway (type: gateway), au format natif du "file
+# provider" de Traefik. Absent : gateway-config.yaml génère le routage par
+# défaut depuis les backends du helm.yaml.
+gatewayConfig: ""

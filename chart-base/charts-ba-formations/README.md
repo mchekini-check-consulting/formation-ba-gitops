@@ -10,6 +10,7 @@ L'ApplicationSet `gitops/templates/business/applicationset.yaml` : une Applicati
 `<env>-<projet>` par couple (`business.envs` x `business.projects`), avec :
 
 - `helm.yaml` du dépôt métier ;
+- `gateway.yaml` du dépôt métier, optionnel (`ignoreMissingValueFiles: true`) ;
 - `values/common/databases.yaml` + `values/<env>/databases.yaml` ;
 - paramètres `env` et `project`.
 
@@ -22,7 +23,7 @@ Version utilisée : `business.charts.app` dans `gitops/values.yaml`.
 | `deployment.yaml` | Deployment | chaque application ; `tag`, `replicas`, `envList` par environnement. `type: gateway` : image Traefik fournie par la plateforme (pas de `tag` dans helm.yaml), config montée depuis `gateway-config.yaml` |
 | `service.yaml` | Service `<application>` | chaque application |
 | `ingress.yaml` | Ingress `<application>.<projet>.<env>.<domaine>` (+ Middleware strip) | frontends/gateways avec `ingress.enabled` |
-| `gateway-config.yaml` | ConfigMap `<gateway>-config` : routes Traefik (une par backend, préfixe retiré, CORS pour les frontends) | applications `type: gateway` |
+| `gateway-config.yaml` | ConfigMap `<gateway>-config` : routes Traefik — `gatewayConfig` (de `gateway.yaml`, rendu avec `tpl`) si fourni, sinon une route par backend générée automatiquement (préfixe retiré, CORS pour les frontends) | applications `type: gateway` |
 | (aucun) | pas d'Ingress direct pour les backends : Service ClusterIP seulement, exposé par le pod gateway du projet (s'il en a un) | `type: backend` |
 | `certificate.yaml` | Certificate `*.<projet>.<env>.<domaine>` | si au moins un frontend/gateway exposé |
 | `database.yaml` | Cluster `app-db`, une base par application avec `database` (via pg-lib) | applications avec `database` |
@@ -53,6 +54,38 @@ applications:
 Variables injectées par `database` (avant `envList`) : `PGHOST`, `PGPORT`,
 `PGDATABASE`, `PGUSER`, `PGPASSWORD`, `DATABASE_URL`, `SPRING_DATASOURCE_URL`,
 `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`.
+
+## `gateway.yaml` (optionnel, racine du dépôt projet)
+
+Pour personnaliser le routage/CORS/etc. du pod `gateway` au lieu du routage
+généré automatiquement (routage, rate limiting, authentification
+centralisée...), au format natif du "file provider" de Traefik :
+
+```yaml
+gatewayConfig: |
+  http:
+    routers:
+      backend:
+        rule: "PathPrefix(`/backend`)"
+        service: backend
+        middlewares: [backend-strip, cors]
+    middlewares:
+      backend-strip:
+        stripPrefix: {prefixes: ["/backend"]}
+      cors:
+        headers:
+          accessControlAllowOriginList:
+            - https://frontend.{{ .project }}.{{ .env }}.{{ .domain }}
+          accessControlAllowMethods: [GET, POST, PUT, PATCH, DELETE, OPTIONS]
+    services:
+      backend:
+        loadBalancer: {servers: [{url: "http://backend:80"}]}
+```
+
+`gatewayConfig` est une **chaîne** (bloc `|`), rendue avec `tpl` : on peut y
+écrire `{{ .project }}`/`{{ .env }}`/`{{ .domain }}`, une seule configuration
+valant pour les 4 environnements (dev/qualif/preprod/prod) plutôt que d'en
+écrire une copie par environnement.
 
 ## Tester
 
