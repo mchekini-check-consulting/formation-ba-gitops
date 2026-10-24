@@ -19,11 +19,12 @@ Version utilisée : `business.charts.app` dans `gitops/values.yaml`.
 
 | Fichier | Produit | Pour |
 |---|---|---|
-| `deployment.yaml` | Deployment | chaque application ; `tag`, `replicas`, `envList` par environnement |
+| `deployment.yaml` | Deployment | chaque application ; `tag`, `replicas`, `envList` par environnement. `type: gateway` : image Traefik fournie par la plateforme (pas de `tag` dans helm.yaml), config montée depuis `gateway-config.yaml` |
 | `service.yaml` | Service `<application>` | chaque application |
-| `ingress.yaml` | Ingress `<application>.<projet>.<env>.<domaine>` (+ Middleware strip) | frontends avec `ingress.enabled` |
-| (aucun) | pas d'Ingress pour les backends depuis 0.7.0 : Service ClusterIP, exposé par la passerelle [api-gateway](../api-gateway/README.md) | backends listés dans `business.projects[].api` |
-| `certificate.yaml` | Certificate `*.<projet>.<env>.<domaine>` | si au moins un frontend exposé |
+| `ingress.yaml` | Ingress `<application>.<projet>.<env>.<domaine>` (+ Middleware strip) | frontends/gateways avec `ingress.enabled` |
+| `gateway-config.yaml` | ConfigMap `<gateway>-config` : routes Traefik (une par backend, préfixe retiré, CORS pour les frontends) | applications `type: gateway` |
+| (aucun) | pas d'Ingress direct pour les backends : Service ClusterIP seulement, exposé par le pod gateway du projet (s'il en a un) | `type: backend` |
+| `certificate.yaml` | Certificate `*.<projet>.<env>.<domaine>` | si au moins un frontend/gateway exposé |
 | `database.yaml` | Cluster `app-db`, une base par application avec `database` (via pg-lib) | applications avec `database` |
 | `_helpers.tpl` | valeur par environnement, labels, hosts, variables de connexion | |
 
@@ -31,18 +32,22 @@ Version utilisée : `business.charts.app` dans `gitops/values.yaml`.
 
 ```yaml
 applications:
-  - name: backend                 # nom du Deployment, du Service et de l'Ingress
-    type: backend                 # backend : jamais d'Ingress (passerelle api-gateway) ; sinon host propre
+  - name: backend                 # nom du Deployment et du Service
+    type: backend                 # backend : jamais d'Ingress direct ; sinon host propre
     image: <registre>/<projet>/backend
     tag: {dev: abc1234, qualif: abc1234}   # écrit par Kargo
     containerPort: 8080
     replicas: {dev: 1, prod: 2}   # valeur unique ou map par environnement
     service: {port: 80}
-    # ingress : frontends seulement (enabled, host, path, stripPrefix)
     database: {name: ma_base}     # ou true (base = nom de l'application)
     envList:
       - key: LOG_LEVEL
         value: {dev: debug, prod: warn}
+
+  - name: gateway                 # un par projet, optionnel : expose les backends ci-dessus
+    type: gateway                 # pas d'image/tag à fournir (plateforme : Traefik)
+    replicas: {dev: 1, prod: 2}
+    ingress: {enabled: true}      # https://gateway.<projet>.<env>.<domaine>/<backend>/...
 ```
 
 Variables injectées par `database` (avant `envList`) : `PGHOST`, `PGPORT`,
@@ -53,8 +58,8 @@ Variables injectées par `database` (avant `envList`) : `PGHOST`, `PGPORT`,
 
 ```bash
 cd chart-base
-helm dependency build charts-ba-formations/0.7.0
-helm template formation-ba-scpi-invest charts-ba-formations/0.7.0 \
+helm dependency build charts-ba-formations/0.8.0
+helm template formation-ba-scpi-invest charts-ba-formations/0.8.0 \
   -n dev-formation-ba-scpi-invest \
   -f ../../formation-ba-scpi-invest/helm.yaml \
   -f ../gitops/values/common/databases.yaml -f ../gitops/values/dev/databases.yaml \
@@ -64,6 +69,7 @@ helm template formation-ba-scpi-invest charts-ba-formations/0.7.0 \
 ## Pièges
 
 - Un `tag` vide pour l'environnement fait échouer le rendu : remplir `tag.<env>`
-  avant d'ajouter un environnement.
-- Exposer un backend se décide dans gitops (`business.projects[].api`), pas dans
-  `helm.yaml` : la clé `ingress` d'un backend est ignorée.
+  avant d'ajouter un environnement (ne s'applique pas à `type: gateway`, qui n'a
+  pas de `tag`).
+- Un backend sans application `type: gateway` dans le même `helm.yaml` n'est
+  joignable que depuis l'intérieur du cluster (Service ClusterIP).

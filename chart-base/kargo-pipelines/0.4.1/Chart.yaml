@@ -1,0 +1,9 @@
+apiVersion: v2
+name: kargo-pipelines
+description: >-
+  Pipelines Kargo d'UN dépôt formation-ba-* (Project, Warehouse, Stages par
+  environnement) — composants lus depuis le helm.yaml du dépôt, une Application
+  par projet (gitops/templates/business/kargo-pipelines.yaml). Ignore les
+  applications sans image (ex. type: gateway, fourni par la plateforme).
+type: application
+version: 0.4.1

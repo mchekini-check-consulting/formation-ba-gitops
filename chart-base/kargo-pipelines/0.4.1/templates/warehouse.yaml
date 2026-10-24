@@ -1,0 +1,25 @@
+{{- /* Un Warehouse qui surveille l'image ECR de chaque composant du projet
+       courant, construit par la CI — applications de son propre helm.yaml
+       avec une image (ex. backend, frontend), dans l'ordre déclaré. Les
+       applications sans image (ex. type: gateway, fourni par la plateforme,
+       rien à construire ni à promouvoir) sont ignorées.
+       Un Freight = les tags de tous les composants à un instant donné. */}}
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Warehouse
+metadata:
+  name: {{ .Values.project }}
+  namespace: {{ .Values.project }}
+spec:
+  interval: {{ .Values.warehouse.interval }}
+  freightCreationPolicy: Automatic
+  subscriptions:
+    {{- range .Values.applications }}
+    {{- if .image }}
+    - image:
+        repoURL: {{ include "kp.image" (dict "root" $ "component" .name) }}
+        imageSelectionStrategy: NewestBuild
+        allowTagsRegexes:
+          {{- toYaml $.Values.warehouse.allowTagsRegexes | nindent 10 }}
+        discoveryLimit: {{ $.Values.warehouse.discoveryLimit }}
+    {{- end }}
+    {{- end }}
