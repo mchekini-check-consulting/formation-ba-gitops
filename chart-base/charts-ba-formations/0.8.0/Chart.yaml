@@ -1,0 +1,13 @@
+apiVersion: v2
+name: charts-ba-formations
+description: >-
+  Déploie sur EKS les applications décrites dans le helm.yaml d'un dépôt
+  projet — dont, depuis cette version, type: gateway (petit Traefik
+  autonome routant vers les backends du même projet, exposé par un Ingress
+  standard comme un frontend ; remplace la passerelle partagée api-gateway)
+version: 0.8.0
+dependencies:
+  # Bases PostgreSQL et sauvegardes S3 (applications[].database)
+  - name: pg-lib
+    version: 0.2.0
+    repository: file://../../pg-lib/0.2.0

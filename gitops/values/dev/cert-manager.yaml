@@ -27,9 +27,9 @@ extraObjects:
                 hostedZoneID: Z02992983P6JBHBJ5UT37   # zone publique check-consulting.net
 
   # Wildcard des environnements du cluster *.dev / *.qualif.check-consulting.net
-  # (argocd.dev, sonarqube.dev, passerelles api.dev et api.qualif, ...),
-  # servi par Traefik (tlsStore default, values/common/traefik.yaml).
-  # Le Secret doit être dans le namespace de Traefik.
+  # (argocd.dev, sonarqube.dev, kargo.dev, ...), servi par Traefik (tlsStore
+  # default, values/common/traefik.yaml). Le Secret doit être dans le
+  # namespace de Traefik.
   - |
     apiVersion: cert-manager.io/v1
     kind: Certificate
@@ -42,7 +42,7 @@ extraObjects:
       secretName: wildcard-check-consulting-tls
       dnsNames:
         - "*.dev.check-consulting.net"
-        # qualif, hébergé sur ce cluster : passerelle api.qualif.check-consulting.net
+        # qualif, hébergé sur ce cluster
         - "*.qualif.check-consulting.net"
       issuerRef:
         kind: ClusterIssuer
