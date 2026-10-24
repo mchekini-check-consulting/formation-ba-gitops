@@ -1,0 +1,32 @@
+# Pipelines Kargo d'UN dépôt (un Project, un Warehouse, une Stage par
+# environnement). Une Application par projet, générée par l'ApplicationSet
+# (gitops/templates/business/kargo-pipelines.yaml).
+#
+# Une promotion écrit le tag de chaque composant dans helm.yaml du dépôt
+# (applications.<index>.tag.<env>), pousse sur main, puis synchronise
+# l'Application ArgoCD <env>-<dépôt>.
+#
+# project, github, branch, registry et envs viennent du bloc business de
+# gitops/values.yaml (valeurs injectées par l'ApplicationSet) ; access de la
+# matrice d'accès gitops/values/common/access.yaml ; applications vient du
+# helm.yaml du dépôt lui-même (source $app de l'Application) — dans l'ORDRE où
+# elles y sont déclarées, cet ordre indexant applications.<i>.tag.<env>.
+
+project: ""
+github: ""
+branch: main
+registry: ""
+envs: []
+applications: []
+
+# SSO : droits dans ce Project depuis la matrice d'accès
+# gitops/values/common/access.yaml (tools.kargo.roles.<rôle>.project /
+# projectRules), passée en valueFile par l'ApplicationSet.
+access: {}
+
+# Images retenues : tags = sha court du commit (7 caractères, écrit par la CI).
+warehouse:
+  interval: 1m
+  allowTagsRegexes:
+    - ^[0-9a-f]{7}$
+  discoveryLimit: 10

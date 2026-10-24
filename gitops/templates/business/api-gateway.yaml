@@ -1,36 +1,72 @@
-{{- /* Passerelle API de chaque environnement (chart-base/<business.charts.gateway>) :
-       une Application api-gateway-<env>, namespace api-gateway-<env>, un seul
-       IngressRoute api.<env>.<domaine> qui route vers les backends listés dans
-       business.projects[].api (Services ClusterIP, sans Ingress).
-       Projet ArgoCD de la plateforme : les projets métier ne créent pas d'IngressRoute.
+{{- /* Passerelle API de chaque (environnement x projet) : chart-base/<business.charts.gateway>,
+       une Application par (env, projet), namespace api-gateway-<env>-<projet>, un
+       IngressRoute api.<env>.<domaine> qui route vers les backends type:backend du
+       helm.yaml de CE projet (Services ClusterIP, sans Ingress) — plus besoin de
+       dupliquer la liste "api" ici, elle suit automatiquement helm.yaml. Traefik
+       agrège nativement les routes de tous les IngressRoute qui partagent ce Host
+       (un par projet) : aucune perte fonctionnelle par rapport à l'IngressRoute
+       unique précédent.
+       Projet ArgoCD "default" : les projets métier ne créent pas d'IngressRoute
+       (pas dans la liste blanche de leur propre AppProject).
        Wave 51 : avec les Applications métier. */}}
 {{- with .Values.business }}
 {{- if .enabled }}
-{{- range $env := .envs }}
----
 apiVersion: argoproj.io/v1alpha1
-kind: Application
+kind: ApplicationSet
 metadata:
-  name: api-gateway-{{ $env.name }}
+  name: api-gateway
   namespace: {{ $.Values.argocdNamespace }}
   annotations:
     argocd.argoproj.io/sync-wave: "51"
 spec:
-  project: {{ $.Values.project }}
-  source:
-    repoURL: {{ $.Values.chartBase.repoURL }}
-    targetRevision: {{ $.Values.chartBase.targetRevision }}
-    path: {{ $.Values.chartBase.path }}/{{ required "business.charts.gateway requis" $.Values.business.charts.gateway }}
-    helm:
-      valuesObject:
-        env: {{ $env.name }}
-        projects:
-          {{- toYaml $.Values.business.projects | nindent 10 }}
-  destination:
-    name: {{ $env.cluster }}
-    namespace: api-gateway-{{ $env.name }}
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - matrix:
+        generators:
+          - list:
+              elements:
+                {{- range .envs }}
+                - env: {{ .name }}
+                  cluster: {{ .cluster }}
+                {{- end }}
+          - list:
+              elements:
+                {{- range .projects }}
+                - project: {{ .name }}
+                {{- end }}
+  # Retirer un env ou un projet supprime son Application de passerelle, pas les
+  # Deployments/Services métier déjà déployés
   syncPolicy:
-    {{- toYaml $.Values.syncPolicy | nindent 4 }}
-{{- end }}
+    preserveResourcesOnDeletion: true
+  template:
+    metadata:
+      name: 'api-gateway-{{`{{ .env }}-{{ .project }}`}}'
+    spec:
+      project: default
+      sources:
+        - repoURL: {{ $.Values.chartBase.repoURL }}
+          targetRevision: {{ $.Values.chartBase.targetRevision }}
+          path: {{ $.Values.chartBase.path }}/{{ required "business.charts.gateway requis" $.Values.business.charts.gateway }}
+          helm:
+            # applications (type: backend exposé, sinon origine CORS) : vient du
+            # dépôt du projet lui-même
+            valueFiles:
+              - $app/helm.yaml
+            valuesObject:
+              env: '{{`{{ .env }}`}}'
+              project: '{{`{{ .project }}`}}'
+        - repoURL: '{{ .github }}/{{`{{ .project }}`}}.git'
+          targetRevision: {{ .branch }}
+          ref: app
+      destination:
+        name: '{{`{{ .cluster }}`}}'
+        namespace: 'api-gateway-{{`{{ .env }}-{{ .project }}`}}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
 {{- end }}
 {{- end }}

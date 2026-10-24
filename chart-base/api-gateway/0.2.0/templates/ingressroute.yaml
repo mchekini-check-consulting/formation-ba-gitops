@@ -1,0 +1,81 @@
+{{- /* Passerelle de ce (environnement x projet) : un IngressRoute Traefik sur
+       api.<env>.<domain>, une route par backend du projet (Traefik agrège
+       les routes de tous les IngressRoute qui partagent ce Host, un par
+       projet, donc par namespace api-gateway-<env>-<projet>).
+
+         https://api.dev.check-consulting.net/formation-ba-scpi-invest/backend/items
+           -> Service backend (ClusterIP) du namespace dev-formation-ba-scpi-invest,
+              requête /items
+
+       - Les backends n'ont aucun Ingress : seule cette passerelle les expose.
+       - Services d'autres namespaces : Traefik avec allowCrossNamespace
+         (gitops/values/common/traefik.yaml). Projet ArgoCD "default" : les
+         projets métier eux-mêmes ne peuvent pas créer d'IngressRoute (pas
+         dans la liste blanche de leur propre AppProject).
+       - Certificat : wildcard *.<env>.<domain> de la plateforme (TLSStore par défaut).
+       - DNS : api.<env> publié par external-dns depuis l'annotation du Service de
+         Traefik (gitops/values/<env>/traefik.yaml), un IngressRoute n'ayant pas
+         l'adresse du NLB.
+       - Chemin non déclaré : 404 de Traefik. */}}
+{{- $routes := include "gw.routes" . | fromYamlArray }}
+{{- $origins := include "gw.origins" . | fromYamlArray }}
+{{- $host := include "gw.host" . }}
+{{- if $routes }}
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: api-gateway
+  labels:
+    {{- include "gw.labels" . | nindent 4 }}
+spec:
+  entryPoints: [websecure]
+  routes:
+    {{- range $routes }}
+    # {{ .prefix }}/... -> {{ .service }}.{{ .namespace }}
+    - kind: Rule
+      match: Host(`{{ $host }}`) && (Path(`{{ .prefix }}`) || PathPrefix(`{{ .prefix }}/`))
+      middlewares:
+        {{- if $origins }}
+        - name: cors
+        {{- end }}
+        - name: strip
+      services:
+        - name: {{ .service }}
+          namespace: {{ .namespace }}
+          port: http
+    {{- end }}
+  tls: {}
+---
+# Retire /<projet>/<backend> : le backend reçoit /items, pas /<projet>/backend/items
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: strip
+  labels:
+    {{- include "gw.labels" . | nindent 4 }}
+spec:
+  stripPrefix:
+    prefixes:
+      {{- range $routes }}
+      - {{ .prefix }}
+      {{- end }}
+{{- if $origins }}
+---
+# CORS : seuls les frontends de ce projet peuvent appeler ses backends depuis
+# le navigateur (Traefik répond lui-même aux pré-vérifications OPTIONS)
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: cors
+  labels:
+    {{- include "gw.labels" . | nindent 4 }}
+spec:
+  headers:
+    accessControlAllowOriginList:
+      {{- toYaml $origins | nindent 6 }}
+    accessControlAllowMethods: [GET, POST, PUT, PATCH, DELETE, OPTIONS]
+    accessControlAllowHeaders: [Content-Type, Authorization]
+    accessControlMaxAge: 600
+    addVaryHeader: true
+{{- end }}
+{{- end }}

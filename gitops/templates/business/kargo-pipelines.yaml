@@ -1,11 +1,19 @@
 {{- /* Pipelines Kargo des projets (chart-base/<business.charts.pipelines>), avec les
-       envs et projects de values.yaml. Prérequis : Kargo installé (tools.kargo, wave 40).
-       Application séparée :
-         - AppProject dédié : uniquement des ressources Kargo et les namespaces des Projects
+       envs de values.yaml et les applications du helm.yaml de CHAQUE projet (plus
+       besoin de dupliquer la liste de ses composants ici : components suit
+       automatiquement helm.yaml, dans son ordre — fini le piège de désynchronisation
+       avec l'index applications.<i>.tag.<env> d'une promotion).
+       Prérequis : Kargo installé (tools.kargo, wave 40).
+       Une Application par projet (ApplicationSet) :
+         - AppProject dédié partagé : uniquement des ressources Kargo et les
+           namespaces des Projects, mais sourceRepos élargi aux dépôts métier
+           (lecture de leur helm.yaml comme simple fichier de values — ne leur
+           donne aucun droit de création de ressource, governé par les
+           whitelists ci-dessous, propres à ce dépôt de charts)
          - prune: true      : retirer un env ou un projet supprime ses Stages/Warehouse
                               (la racine, elle, ne supprime jamais les objets métier : Prune=false)
          - une erreur Kargo ne bloque pas la synchronisation de la racine
-       Waves : AppProject 50, Application 51. */}}
+       Waves : AppProject 50, ApplicationSet 51. */}}
 {{- with .Values.business }}
 {{- if .enabled }}
 apiVersion: argoproj.io/v1alpha1
@@ -18,9 +26,13 @@ metadata:
     argocd.argoproj.io/sync-options: Prune=false
 spec:
   description: Pipelines Kargo (Project, Warehouse, Stages) des dépôts formation-ba-*
-  # Chart (chartBase) et matrice d'accès (gitops), souvent le même dépôt
+  # Chart (chartBase), matrice d'accès (gitops) et dépôt de chaque projet (lu en
+  # simple fichier de values, helm.yaml — aucun droit de création de ressource)
   sourceRepos:
     {{- toYaml (list (required "chartBase.repoURL requis" $.Values.chartBase.repoURL) (required "gitops.repoURL requis" $.Values.gitops.repoURL) | uniq) | nindent 4 }}
+    {{- range .projects }}
+    - {{ $.Values.business.github }}/{{ .name }}.git
+    {{- end }}
   # namespace "*" : l'Application n'a pas de namespace par défaut (chaque ressource
   # Kargo porte le sien). Le périmètre est limité par les whitelists ci-dessous
   # (ressources Kargo et namespaces uniquement) et par sourceRepos.
@@ -40,7 +52,7 @@ spec:
     - { group: rbac.authorization.k8s.io, kind: Role }        # projectRules (Role sur mesure)
 ---
 apiVersion: argoproj.io/v1alpha1
-kind: Application
+kind: ApplicationSet
 metadata:
   name: kargo-pipelines
   namespace: {{ $.Values.argocdNamespace }}
@@ -48,25 +60,52 @@ metadata:
     argocd.argoproj.io/sync-wave: "51"
     argocd.argoproj.io/sync-options: Prune=false
 spec:
-  project: kargo-pipelines
-  sources:
-    - repoURL: {{ $.Values.chartBase.repoURL }}
-      targetRevision: {{ $.Values.chartBase.targetRevision }}
-      path: {{ $.Values.chartBase.path }}/{{ required "business.charts.pipelines requis" .charts.pipelines }}
-      helm:
-        # Matrice d'accès de la plateforme (droits SSO dans chaque Project)
-        valueFiles:
-          - $values/{{ $.Values.gitops.path }}/values/common/access.yaml
-        valuesObject:
-          {{- toYaml (pick . "github" "branch" "registry" "envs" "projects") | nindent 10 }}
-    - repoURL: {{ $.Values.gitops.repoURL }}
-      targetRevision: {{ $.Values.gitops.targetRevision }}
-      ref: values
-  destination:
-    name: in-cluster
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - list:
+        elements:
+          {{- range .projects }}
+          - project: {{ .name }}
+          {{- end }}
+  # Retirer un projet supprime son Application Kargo, pas ses objets déjà déployés
   syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
+    preserveResourcesOnDeletion: true
+  template:
+    metadata:
+      name: 'kargo-pipelines-{{`{{ .project }}`}}'
+      annotations:
+        argocd.argoproj.io/sync-options: Prune=false
+    spec:
+      project: kargo-pipelines
+      sources:
+        - repoURL: {{ $.Values.chartBase.repoURL }}
+          targetRevision: {{ $.Values.chartBase.targetRevision }}
+          path: {{ $.Values.chartBase.path }}/{{ required "business.charts.pipelines requis" .charts.pipelines }}
+          helm:
+            valueFiles:
+              # Matrice d'accès de la plateforme (droits SSO dans ce Project)
+              - $values/{{ $.Values.gitops.path }}/values/common/access.yaml
+              # applications (composants, dans l'ordre) : vient du dépôt du projet lui-même
+              - $app/helm.yaml
+            valuesObject:
+              project: '{{`{{ .project }}`}}'
+              github: {{ .github }}
+              branch: {{ .branch }}
+              registry: {{ .registry }}
+              envs:
+                {{- toYaml .envs | nindent 16 }}
+        - repoURL: '{{ .github }}/{{`{{ .project }}`}}.git'
+          targetRevision: {{ .branch }}
+          ref: app
+        - repoURL: {{ $.Values.gitops.repoURL }}
+          targetRevision: {{ $.Values.gitops.targetRevision }}
+          ref: values
+      destination:
+        name: in-cluster
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
 {{- end }}
 {{- end }}

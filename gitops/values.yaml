@@ -194,8 +194,8 @@ business:
   # Charts maison de chart-base (même dépôt que chartBase de cluster.yaml)
   charts:
     app: charts-ba-formations/0.7.0     # chart applicatif des projets
-    pipelines: kargo-pipelines/0.3.0    # Project, Warehouse, Stages Kargo
-    gateway: api-gateway/0.1.0          # passerelle api.<env> (une par environnement)
+    pipelines: kargo-pipelines/0.4.0    # Project, Warehouse, Stages Kargo (1 Application/projet)
+    gateway: api-gateway/0.2.0          # passerelle api.<env> (1 Application/env x projet)
 
   # Dépôts métier : <github>/<projet>.git, branche lue par ArgoCD et écrite par Kargo
   github: https://github.com/mchekini-check-consulting
@@ -223,13 +223,10 @@ business:
     # - name: prod
     #   cluster: prod-cluster
 
-  # Projets = dépôts GitHub avec un helm.yaml à leur racine.
-  # components : dans l'ORDRE de la liste applications de helm.yaml (la position
-  # est l'index où Kargo écrit le tag). Réordonner helm.yaml = réordonner ici.
-  # api : backends exposés par la passerelle de chaque environnement
-  #   https://api.<env>.check-consulting.net/<projet>/<backend>/...
-  # (Services ClusterIP, sans Ingress). Un backend absent de api n'est pas joignable
-  # depuis l'extérieur du cluster.
+  # Projets = dépôts GitHub avec un helm.yaml à leur racine. Ses composants
+  # (Warehouse Kargo, ordre pour l'index de promotion) et ses backends exposés
+  # par la passerelle (type: backend) viennent directement de ce helm.yaml —
+  # rien à dupliquer ici, juste le nom du dépôt.
   # Format exigé dans helm.yaml : tag en style bloc, une valeur par ligne, sans
   # commentaire en fin de ligne (Kargo remplace jusqu'à la fin de la ligne) :
   #   tag:
@@ -237,17 +234,7 @@ business:
   #     qualif: ""
   projects:
     - name: formation-ba-assurance-iard
-      components: [backend, frontend]
-      api: [backend]
     - name: formation-ba-compte-unique
-      components: [backend, frontend]
-      api: [backend]
     - name: formation-ba-gestion-financiere
-      components: [backend, frontend]
-      api: [backend]
     - name: formation-ba-quali-formation
-      components: [backend, frontend]
-      api: [backend]
     - name: formation-ba-scpi-invest
-      components: [backend, frontend]
-      api: [backend]

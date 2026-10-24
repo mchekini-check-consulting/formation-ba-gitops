@@ -1,0 +1,9 @@
+apiVersion: v2
+name: api-gateway
+description: >-
+  Passerelle API d'un (environnement x projet), sur Traefik : un IngressRoute
+  api.<env>.<domain> par projet (Traefik agrège les routes de plusieurs
+  IngressRoute sur le même Host) vers les backends type:backend du helm.yaml
+  de ce projet.
+type: application
+version: 0.2.0
