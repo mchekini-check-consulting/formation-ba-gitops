@@ -25,6 +25,12 @@ providers:
 service:
   annotations:
     service.beta.kubernetes.io/aws-load-balancer-type: nlb
+  # Local : le NLB n'envoie qu'aux nœuds qui portent un pod Traefik, sans SNAT ;
+  # Traefik voit la vraie IP du client (ClientHost des logs d'accès, IP du client
+  # dans X-Forwarded-For vers les applications). Les nœuds sans pod Traefik sont
+  # marqués non sains par le health check du NLB (normal).
+  spec:
+    externalTrafficPolicy: Local
 
 podDisruptionBudget:
   enabled: true
@@ -48,3 +54,24 @@ tlsStore:
   default:
     defaultCertificate:
       secretName: wildcard-check-consulting-tls
+
+# Logs d'accès JSON sur stdout, collectés par Alloy (log_type=http_access, dashboard
+# HTTP de grafana-dashboards). Champs utilisés : ClientHost, DownstreamStatus,
+# RequestContentSize (octets reçus du client), DownstreamContentSize (octets envoyés),
+# RequestHost, RequestMethod, Duration. En-têtes jetés (cookies, Authorization) sauf
+# User-Agent ; paramètres de requête jetés (jetons éventuels dans l'URL).
+accessLog:
+  enabled: true
+  format: json
+  fields:
+    defaultMode: keep
+    headers:
+      defaultMode: drop
+      names:
+        User-Agent: keep
+    queryParameters:
+      defaultMode: drop
+
+# Logs propres de Traefik en JSON aussi (non collectés, mais lisibles avec kubectl logs | jq)
+log:
+  format: json

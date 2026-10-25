@@ -60,4 +60,16 @@ tools:
   keycloak:
     version: 7.1.9     # chart keycloakx, Keycloak 26.5.5
   keycloak-config:
-    version: 0.3.1     # chart maison chart-base/keycloak-config
+    version: 0.3.2     # chart maison chart-base/keycloak-config
+  loki:
+    version: 19.3.0    # Loki 3.7.9
+  alloy:
+    version: 1.14.3    # Alloy v1.21.2
+  alloy-events:
+    version: 1.14.3    # chart alloy
+  grafana-db:
+    version: 0.2.0     # chart pg-cluster
+  grafana:
+    version: 14.0.1    # Grafana 13.2.4
+  grafana-dashboards:
+    version: 0.1.0     # chart maison chart-base/grafana-dashboards

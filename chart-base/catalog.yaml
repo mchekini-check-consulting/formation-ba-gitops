@@ -40,10 +40,25 @@ tools:
     repo: https://charts.jetstack.io
     chart: cert-manager
 
-  # Détection d'anomalies runtime (syscalls), sortie en stdout -> récupérée par Fluent Bit
+  # Détection d'anomalies runtime (syscalls), sortie en stdout -> récupérée par Alloy
   falco:
     repo: https://falcosecurity.github.io/charts
     chart: falco
+
+  # Logs : stockage (Loki, objets sur S3), collecte (Alloy, DaemonSet), visualisation
+  # (Grafana, SSO Keycloak). Loki et Grafana : dépôt grafana-community (le chart
+  # grafana/grafana est figé, grafana/loki vise Grafana Enterprise Logs).
+  loki:
+    repo: https://grafana-community.github.io/helm-charts
+    chart: loki
+
+  alloy:
+    repo: https://grafana.github.io/helm-charts
+    chart: alloy
+
+  grafana:
+    repo: https://grafana-community.github.io/helm-charts
+    chart: grafana
 
   # Keycloak (SSO des outils de la plateforme), image officielle quay.io/keycloak.
   # Realms, clients, groupes, utilisateurs : chart maison chart-base/keycloak-config.

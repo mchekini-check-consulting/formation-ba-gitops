@@ -8,7 +8,7 @@ dépôt Helm en ligne.
 
 | Sorte | Charts | Origine | On modifie ? |
 |---|---|---|---|
-| Téléchargés | argocd, traefik, external-dns, cert-manager, falco, cloudnative-pg, plugin-barman-cloud, sonarqube, kargo, keycloakx | dépôt Helm de l'éditeur, copié par `scripts/sync-charts.sh` (source : `catalog.yaml`) | jamais : on règle tout par les values (`gitops/values`) |
+| Téléchargés | argocd, traefik, external-dns, cert-manager, falco, cloudnative-pg, plugin-barman-cloud, sonarqube, kargo, keycloakx, loki, alloy, grafana | dépôt Helm de l'éditeur, copié par `scripts/sync-charts.sh` (source : `catalog.yaml`) | jamais : on règle tout par les values (`gitops/values`) |
 | Maison | voir tableau ci-dessous | écrits ici | oui, en créant une nouvelle version |
 
 | Chart maison | Rôle | Utilisé par |
@@ -20,6 +20,7 @@ dépôt Helm en ligne.
 | [keycloak-config](keycloak-config/README.md) | realms, clients, groupes, utilisateurs Keycloak | Application `keycloak-config` |
 | [sonarqube-config](sonarqube-config/README.md) | groupes et permissions SonarQube | Application `sonarqube-config` |
 | [cloudbeaver](cloudbeaver/README.md) | CloudBeaver (pas de chart officiel) | Application `cloudbeaver` |
+| [grafana-dashboards](grafana-dashboards/README.md) | dashboards de logs (HTTP, métier, infra), désactivés par défaut | Application `grafana-dashboards` |
 
 ## Règles
 

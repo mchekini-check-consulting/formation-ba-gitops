@@ -60,6 +60,17 @@ access:
           group: sonar-administrators
         user: {}
 
+    # Grafana (logs). Rôle Keycloak -> rôle Grafana (role_attribute_path, values/<env>/grafana.yaml) :
+    #   admin  -> GrafanaAdmin (administration de l'instance, organisation comprise)
+    #   editor -> Editor (explorer, créer des dashboards personnels ; ceux des values restent en lecture seule)
+    #   viewer -> Viewer (lecture des dashboards, Explore désactivé pour ce rôle)
+    # Sans aucun de ces rôles : connexion refusée (role_attribute_strict).
+    grafana:
+      roles:
+        admin: {}
+        editor: {}
+        viewer: {}
+
   # Groupes Keycloak : rôles par outil. mfa: true : code OTP exigé à chaque connexion
   # (configuration de l'application d'authentification imposée à la première).
   groups:
@@ -69,13 +80,16 @@ access:
         kargo: [admin]
         argocd: [admin]
         sonarqube: [admin]
+        grafana: [admin]
     ba:
       roles:
         kargo: [promoter]
         argocd: [readonly]
         sonarqube: [user]
+        grafana: [viewer]
     dev-team:
       roles:
         kargo: [viewer]
         argocd: [readonly]
         sonarqube: [user]
+        grafana: [viewer]

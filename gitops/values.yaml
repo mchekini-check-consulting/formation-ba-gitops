@@ -182,6 +182,62 @@ tools:
     namespace: kargo
     syncWave: "40"
     access: true
+  # Logs : Loki (stockage S3), Alloy (collecte), Grafana (visualisation, SSO).
+  # Bucket S3 et rôles IAM (Pod Identity sur logging/loki et logging/grafana) :
+  # formation-ba-landingzone, aws/environments/<env>/logs.
+  # Wave 25 : Loki prêt avant les collecteurs.
+  loki:
+    enabled: true
+    version: ""
+    namespace: logging
+    syncWave: "25"
+    crds: false
+  # Collecteur des logs de pods et du journal des nœuds (DaemonSet). Wave 30 : après Loki.
+  # Pas de CRDs : PodLogs non utilisés (crds.create: false).
+  alloy:
+    enabled: true
+    version: ""
+    namespace: logging
+    syncWave: "30"
+    crds: false
+  # Événements Kubernetes : une seule instance (un DaemonSet les remonterait une fois
+  # par nœud). Même chart qu'alloy, config dédiée.
+  alloy-events:
+    enabled: true
+    version: ""
+    chart: alloy
+    namespace: logging
+    syncWave: "30"
+    crds: false
+  # Base de Grafana (utilisateurs, préférences ; dashboards et datasources viennent
+  # des values). Wave 20 : après l'opérateur ; finalizer: false : la base survit
+  # à la suppression de l'Application.
+  grafana-db:
+    enabled: true
+    version: ""
+    chart: pg-cluster
+    databases: true
+    namespace: logging
+    syncWave: "20"
+    crds: false
+    finalizer: false
+  # Visualisation des logs, SSO Keycloak (client grafana du realm platform,
+  # rôles : matrice d'accès). Wave 40 : après keycloak-config (35) et Loki.
+  grafana:
+    enabled: true
+    version: ""
+    namespace: logging
+    syncWave: "40"
+    crds: false
+  # Dashboards de logs (chart maison chart-base/grafana-dashboards) : un ConfigMap
+  # par dashboard activé, chargé par le sidecar de Grafana. Tous désactivés par
+  # défaut, activés par environnement (values/<env>/grafana-dashboards.yaml).
+  grafana-dashboards:
+    enabled: true
+    version: ""
+    namespace: logging
+    syncWave: "45"
+    crds: false
 
 # Projets métier : SEUL endroit où déclarer les environnements et les projets.
 # Un commit suffit. En découlent (templates/business/, après les outils) :

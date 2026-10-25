@@ -1,0 +1,12 @@
+# dev (cluster partagé avec qualif) : bucket de formation-ba-landingzone,
+# aws/environments/dev/logs (terragrunt output bucket_name).
+loki:
+  storage:
+    bucketNames:
+      chunks: team-eks-business-analyst-formation-dev-loki
+      ruler: team-eks-business-analyst-formation-dev-loki
+      admin: team-eks-business-analyst-formation-dev-loki
+
+  # = retention_days (30) du module Terraform logs ; l'expiration S3 suit à +7 jours
+  limits_config:
+    retention_period: 720h

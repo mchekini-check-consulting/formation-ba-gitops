@@ -1,0 +1,51 @@
+# Values communes de l'Application alloy-events (chart alloy) : événements
+# Kubernetes du cluster, une seule instance (Deployment, 1 réplica) : un DaemonSet
+# enverrait chaque événement une fois par nœud.
+# Seuls les événements Warning sont gardés (BackOff, OOMKilling, FailedScheduling,
+# Evicted, NodeNotReady, FailedMount...) : log_type=infra, source=events.
+crds:
+  create: false
+
+controller:
+  type: deployment
+  replicas: 1
+
+alloy:
+  enableReporting: false
+  # CLUSTER : values/<env>/alloy-events.yaml
+  resources:
+    requests:
+      cpu: 20m
+      memory: 64Mi
+    limits:
+      memory: 256Mi
+
+  configMap:
+    content: |
+      loki.source.kubernetes_events "cluster" {
+        job_name   = "kubernetes-events"
+        log_format = "logfmt"
+        forward_to = [loki.process.events.receiver]
+      }
+
+      loki.process "events" {
+        stage.logfmt {
+          mapping = { type = "type" }
+        }
+        stage.drop {
+          source              = "type"
+          value               = "Normal"
+          drop_counter_reason = "event_normal"
+        }
+        stage.static_labels {
+          values = { log_type = "infra", source = "events", level = "warn" }
+        }
+        forward_to = [loki.write.default.receiver]
+      }
+
+      loki.write "default" {
+        endpoint {
+          url = "http://loki.logging.svc.cluster.local:3100/loki/api/v1/push"
+        }
+        external_labels = { cluster = sys.env("CLUSTER") }
+      }

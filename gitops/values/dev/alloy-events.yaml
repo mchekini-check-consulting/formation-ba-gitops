@@ -1,0 +1,5 @@
+# dev : label cluster des événements
+alloy:
+  extraEnv:
+    - name: CLUSTER   # label cluster de tous les flux (loki.write external_labels)
+      value: eks-team-eks-business-analyst-formation-dev

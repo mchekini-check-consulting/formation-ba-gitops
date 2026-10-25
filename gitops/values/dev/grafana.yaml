@@ -1,0 +1,16 @@
+# dev : une instance. Ingress servi par Traefik ; external-dns crée l'ALIAS
+# grafana.dev.check-consulting.net -> NLB ; HTTPS : wildcard *.dev (certificat par
+# défaut de Traefik). Client Keycloak : realm platform, client grafana.
+ingress:
+  hosts:
+    - grafana.dev.check-consulting.net
+
+grafana.ini:
+  server:
+    root_url: https://grafana.dev.check-consulting.net
+  auth.generic_oauth:
+    auth_url: https://keycloak.dev.check-consulting.net/realms/platform/protocol/openid-connect/auth
+    token_url: https://keycloak.dev.check-consulting.net/realms/platform/protocol/openid-connect/token
+    api_url: https://keycloak.dev.check-consulting.net/realms/platform/protocol/openid-connect/userinfo
+    # Déconnexion Grafana = déconnexion de la session Keycloak (sinon auto_login reconnecte aussitôt)
+    signout_redirect_url: https://keycloak.dev.check-consulting.net/realms/platform/protocol/openid-connect/logout?client_id=grafana&post_logout_redirect_uri=https%3A%2F%2Fgrafana.dev.check-consulting.net%2Flogin
