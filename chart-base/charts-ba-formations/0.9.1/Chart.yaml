@@ -1,0 +1,16 @@
+apiVersion: v2
+name: charts-ba-formations
+description: >-
+  Déploie sur EKS les applications décrites dans le helm.yaml d'un dépôt
+  projet — dont, depuis cette version, type: gateway (petit Traefik
+  autonome routant vers les backends du même projet, exposé par un Ingress
+  standard comme un frontend ; remplace la passerelle partagée api-gateway).
+  0.9.0 : logs d'accès JSON du pod gateway (collectés par Alloy, dashboard
+  Logs — Trafic HTTP). 0.9.1 : IP réelle du client dans ces logs (le pod
+  gateway fait confiance au X-Forwarded-For du Traefik principal)
+version: 0.9.1
+dependencies:
+  # Bases PostgreSQL et sauvegardes S3 (applications[].database)
+  - name: pg-lib
+    version: 0.2.0
+    repository: file://../../pg-lib/0.2.0
