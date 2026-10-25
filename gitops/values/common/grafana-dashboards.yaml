@@ -1,0 +1,4 @@
+# Values communes du chart grafana-dashboards (chart maison). Tous les dashboards
+# restent désactivés ici (défaut du chart) : activation par environnement,
+# values/<env>/grafana-dashboards.yaml.
+folder: Logs

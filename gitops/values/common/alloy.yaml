@@ -1,0 +1,330 @@
+# Values communes du chart alloy : collecteur de logs, un pod par nœud (DaemonSet).
+# Lit les fichiers /var/log/pods et le journal systemd du nœud, envoie à Loki.
+# Événements Kubernetes : Application alloy-events (une seule instance).
+#
+# Chaque flux reçoit log_type, base des dashboards (chart grafana-dashboards) :
+#   http_access  logs d'accès JSON du Traefik principal (pas les gateways par projet)
+#   business     backends des projets (tier=backend), lignes JSON avec layer
+#                controller|service|db UNIQUEMENT ; le reste (démarrage Nest, TypeORM...) est jeté
+#   infra        source=kube-system : warn, error, critical
+#                source=platform    (argocd, cnpg-system, keycloak, pods CNPG) : error, critical
+#                source=node        (kubelet, containerd, noyau) : warn, error, critical
+# Labels volontairement peu nombreux (limite max_global_streams_per_user de Loki) :
+# l'IP client, le code HTTP, la méthode restent dans la ligne (| json à la requête).
+crds:
+  create: false   # PodLogs non utilisés
+
+controller:
+  type: daemonset
+  # Tous les nœuds, y compris ceux avec des taints
+  tolerations:
+    - operator: Exists
+  priorityClassName: system-node-critical
+  volumes:
+    extra:
+      # Positions de lecture conservées au redémarrage du pod (ni perte ni doublon)
+      - name: alloy-data
+        hostPath:
+          path: /var/lib/alloy
+          type: DirectoryOrCreate
+      - name: machine-id
+        hostPath:
+          path: /etc/machine-id
+          type: File
+
+alloy:
+  enableReporting: false
+  storagePath: /var/lib/alloy/data
+  mounts:
+    varlog: true   # /var/log/pods et /var/log/journal, lecture seule
+    extra:
+      - name: alloy-data
+        mountPath: /var/lib/alloy
+      - name: machine-id
+        mountPath: /etc/machine-id
+        readOnly: true
+  # CLUSTER : values/<env>/alloy.yaml
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 384Mi
+
+  configMap:
+    content: |
+      // ---------------------------------------------------------------------
+      // Pods du nœud : fichiers /var/log/pods/<ns>_<pod>_<uid>/<conteneur>/*.log
+      // ---------------------------------------------------------------------
+      discovery.kubernetes "pods" {
+        role = "pod"
+        selectors {
+          role  = "pod"
+          field = "spec.nodeName=" + sys.env("K8S_NODE_NAME")
+        }
+      }
+
+      discovery.relabel "pods" {
+        targets = discovery.kubernetes.pods.targets
+
+        rule {
+          source_labels = ["__meta_kubernetes_namespace"]
+          target_label  = "namespace"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_name"]
+          target_label  = "pod"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_container_name"]
+          target_label  = "container"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_node_name"]
+          target_label  = "node"
+        }
+        // app : app.kubernetes.io/name, sinon label app, sinon nom du conteneur
+        rule {
+          source_labels = ["__meta_kubernetes_pod_container_name"]
+          target_label  = "app"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_label_app"]
+          regex         = "(.+)"
+          target_label  = "app"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_name"]
+          regex         = "(.+)"
+          target_label  = "app"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_uid", "__meta_kubernetes_pod_container_name"]
+          separator     = "/"
+          replacement   = "/var/log/pods/*$1/*.log"
+          target_label  = "__path__"
+        }
+      }
+
+      // --- Logs d'accès HTTP : Traefik principal -----------------------------
+      discovery.relabel "traefik" {
+        targets = discovery.relabel.pods.output
+        rule {
+          source_labels = ["__meta_kubernetes_namespace", "__meta_kubernetes_pod_container_name"]
+          separator     = "/"
+          regex         = "traefik/traefik"
+          action        = "keep"
+        }
+      }
+
+      local.file_match "traefik" {
+        path_targets = discovery.relabel.traefik.output
+      }
+
+      loki.source.file "traefik" {
+        targets       = local.file_match.traefik.targets
+        tail_from_end = true
+        forward_to    = [loki.process.traefik.receiver]
+      }
+
+      loki.process "traefik" {
+        stage.cri {}
+        // filename (chemin du fichier, un par rotation) : inutile et multiplie les flux
+        stage.label_drop {
+          values = ["filename"]
+        }
+        // Logs d'accès seulement (JSON avec ClientHost) ; logs propres de Traefik jetés
+        stage.match {
+          selector            = `{namespace="traefik"} != "ClientHost"`
+          action              = "drop"
+          drop_counter_reason = "traefik_not_access_log"
+        }
+        stage.static_labels {
+          values = { log_type = "http_access" }
+        }
+        forward_to = [loki.write.default.receiver]
+      }
+
+      // --- Logs métier : backends des projets (charts-ba-formations, tier=backend)
+      discovery.relabel "business" {
+        targets = discovery.relabel.pods.output
+        rule {
+          source_labels = ["__meta_kubernetes_pod_label_tier"]
+          regex         = "backend"
+          action        = "keep"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_label_env"]
+          target_label  = "env"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_part_of"]
+          target_label  = "project"
+        }
+      }
+
+      local.file_match "business" {
+        path_targets = discovery.relabel.business.output
+      }
+
+      loki.source.file "business" {
+        targets       = local.file_match.business.targets
+        tail_from_end = true
+        forward_to    = [loki.process.business.receiver]
+      }
+
+      loki.process "business" {
+        stage.cri {}
+        // filename (chemin du fichier, un par rotation) : inutile et multiplie les flux
+        stage.label_drop {
+          values = ["filename"]
+        }
+        stage.json {
+          expressions = { layer = "layer", level = "level" }
+        }
+        stage.labels {
+          values = { layer = "", level = "" }
+        }
+        // Liste blanche : sans layer métier, la ligne est du bruit de framework
+        stage.match {
+          selector            = `{layer!~"controller|service|db"}`
+          action              = "drop"
+          drop_counter_reason = "business_not_layer"
+        }
+        stage.static_labels {
+          values = { log_type = "business" }
+        }
+        forward_to = [loki.write.default.receiver]
+      }
+
+      // --- Infra : kube-system et plateforme (argocd, cnpg, keycloak) ----------
+      discovery.relabel "infra" {
+        targets = discovery.relabel.pods.output
+        rule {
+          source_labels = ["__meta_kubernetes_namespace"]
+          regex         = "kube-system|argocd|cnpg-system|keycloak"
+          target_label  = "__infra"
+          replacement   = "1"
+        }
+        // Instances PostgreSQL CloudNativePG, quel que soit leur namespace
+        rule {
+          source_labels = ["__meta_kubernetes_pod_labelpresent_cnpg_io_cluster"]
+          regex         = "true"
+          target_label  = "__infra"
+          replacement   = "1"
+        }
+        rule {
+          source_labels = ["__infra"]
+          regex         = "1"
+          action        = "keep"
+        }
+        rule {
+          target_label = "source"
+          replacement  = "platform"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_namespace"]
+          regex         = "kube-system"
+          target_label  = "source"
+          replacement   = "kube-system"
+        }
+      }
+
+      local.file_match "infra" {
+        path_targets = discovery.relabel.infra.output
+      }
+
+      loki.source.file "infra" {
+        targets       = local.file_match.infra.targets
+        tail_from_end = true
+        forward_to    = [loki.process.infra_pods.receiver]
+      }
+
+      loki.process "infra_pods" {
+        stage.cri {}
+        // filename (chemin du fichier, un par rotation) : inutile et multiplie les flux
+        stage.label_drop {
+          values = ["filename"]
+        }
+        forward_to = [loki.process.infra_level.receiver]
+      }
+
+      // --- Nœuds : journal systemd (kubelet, containerd, noyau) ---------------
+      loki.source.journal "nodes" {
+        path          = "/var/log/journal"
+        max_age       = "12h"
+        relabel_rules = loki.relabel.journal.rules
+        labels        = { source = "node", node = sys.env("K8S_NODE_NAME") }
+        forward_to    = [loki.process.infra_level.receiver]
+      }
+
+      loki.relabel "journal" {
+        forward_to = []
+        rule {
+          source_labels = ["__journal__systemd_unit"]
+          target_label  = "unit"
+        }
+        rule {
+          source_labels = ["__journal__transport"]
+          regex         = "kernel"
+          target_label  = "unit"
+          replacement   = "kernel"
+        }
+        rule {
+          source_labels = ["unit"]
+          regex         = "kubelet.service|containerd.service|kernel"
+          action        = "keep"
+        }
+      }
+
+      // Niveau normalisé (warn | error | critical | other) quel que soit le format :
+      // JSON (CNPG, aws-node), PostgreSQL (record.error_severity), logfmt (ArgoCD,
+      // containerd), klog (kubelet, kube-proxy, CSI), texte (Keycloak, CoreDNS),
+      // messages OOM du noyau. Puis seuil par source.
+      loki.process "infra_level" {
+        stage.json {
+          expressions = { level = "level", severity = "severity", pg_severity = "record.error_severity" }
+        }
+        stage.logfmt {
+          mapping = { lvl_logfmt = "level" }
+        }
+        stage.regex {
+          expression = `^(?P<klog>[IWEF])\d{4} `
+        }
+        stage.regex {
+          expression = `(?:^|[\s\[])(?P<word>WARN|WARNING|ERROR|SEVERE|FATAL|CRITICAL|PANIC)(?:[\]\s:]|$)`
+        }
+        stage.regex {
+          expression = `(?i)(?P<oom>out of memory|oom-kill|killed process)`
+        }
+        stage.template {
+          source   = "level"
+          // Contenu passé à tpl par le chart : template Alloy protégé dans une chaîne brute Helm
+          template = {{ `"{{ $l := ToLower (or .pg_severity .level .severity .lvl_logfmt .klog .word \"\") }}{{ if .oom }}critical{{ else if or (eq $l \"f\") (eq $l \"fatal\") (eq $l \"panic\") (eq $l \"dpanic\") (eq $l \"critical\") (eq $l \"crit\") }}critical{{ else if or (eq $l \"e\") (eq $l \"error\") (eq $l \"err\") (eq $l \"severe\") }}error{{ else if or (eq $l \"w\") (eq $l \"warn\") (eq $l \"warning\") }}warn{{ else }}other{{ end }}"` }}
+        }
+        stage.labels {
+          values = { level = "" }
+        }
+        stage.match {
+          selector            = `{source="platform", level!~"error|critical"}`
+          action              = "drop"
+          drop_counter_reason = "platform_below_error"
+        }
+        stage.match {
+          selector            = `{source=~"kube-system|node", level!~"warn|error|critical"}`
+          action              = "drop"
+          drop_counter_reason = "infra_below_warn"
+        }
+        stage.static_labels {
+          values = { log_type = "infra" }
+        }
+        forward_to = [loki.write.default.receiver]
+      }
+
+      // ---------------------------------------------------------------------
+      loki.write "default" {
+        endpoint {
+          url = "http://loki.logging.svc.cluster.local:3100/loki/api/v1/push"
+        }
+        external_labels = { cluster = sys.env("CLUSTER") }
+      }

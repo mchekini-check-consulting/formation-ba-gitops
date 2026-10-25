@@ -34,6 +34,21 @@ realms:
         redirectPaths: [/auth/callback, /pkce/verify]
         extraRedirectUris:
           - http://localhost:8085/auth/callback
+      # Grafana : client confidentiel (Grafana exige un client_secret), PKCE en plus.
+      # Secret généré dans keycloak (keycloak-client-platform-grafana), copié en
+      # logging/grafana-oauth (clientSecretCopy, hook PostSync) et lu par Grafana.
+      # Rôles dans le claim "roles", traduits en rôle Grafana par role_attribute_path
+      # (values/common/grafana.yaml).
+      # /login/generic_oauth : retour de connexion ; /login : retour après déconnexion.
+      grafana:
+        name: Grafana
+        host: grafana
+        redirectPaths: [/login/generic_oauth, /login]
+        attributes:
+          pkce.code.challenge.method: S256
+        clientSecretCopy:
+          namespace: logging
+          name: grafana-oauth
       # SonarQube Community : SAML (values/*/sonarqube.yaml). clientId = "Application ID"
       # côté SonarQube. Assertion : login, name, email, groups (rôles renommés en groupes
       # SonarQube : access.tools.sonarqube.roles.<rôle>.group).

@@ -72,6 +72,12 @@ databases:
       initdb: {database: cloudbeaver, owner: cloudbeaver}
       databases:
         cloudbeaver: {}
+    # Secret grafana-db-app lu par Grafana (utilisateurs, préférences, sessions)
+    grafana-db:
+      superuser: true
+      initdb: {database: grafana, owner: grafana}
+      databases:
+        grafana: {}
 
   # Bases des projets métier : les bases viennent de helm.yaml (applications[].database).
   # Ici seulement les surcharges par projet, sinon defaults. Exemple :
