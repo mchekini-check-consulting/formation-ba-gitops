@@ -6,9 +6,3 @@ dashboards:
     enabled: true
   infra:
     enabled: true
-
-# formation-ba-landingzone, aws/environments/dev/eks : terragrunt output
-# control_plane_log_group_name / control_plane_log_group_arn
-eksLogGroup:
-  name: /aws/eks/eks-team-eks-business-analyst-formation-dev/cluster
-  arn: arn:aws:logs:eu-west-3:205493924920:log-group:/aws/eks/eks-team-eks-business-analyst-formation-dev/cluster

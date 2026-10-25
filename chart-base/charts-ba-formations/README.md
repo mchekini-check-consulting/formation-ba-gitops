@@ -91,8 +91,8 @@ valant pour les 4 environnements (dev/qualif/preprod/prod) plutôt que d'en
 
 ```bash
 cd chart-base
-helm dependency build charts-ba-formations/0.8.0
-helm template formation-ba-scpi-invest charts-ba-formations/0.8.0 \
+helm dependency build charts-ba-formations/0.9.0
+helm template formation-ba-scpi-invest charts-ba-formations/0.9.0 \
   -n dev-formation-ba-scpi-invest \
   -f ../../formation-ba-scpi-invest/helm.yaml \
   -f ../gitops/values/common/databases.yaml -f ../gitops/values/dev/databases.yaml \

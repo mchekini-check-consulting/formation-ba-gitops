@@ -71,6 +71,9 @@ accessLog:
         User-Agent: keep
     queryParameters:
       defaultMode: drop
+  # Routes internes aussi (redirection web -> websecure : middleware redirectScheme,
+  # RouterName web-to-websecure@internal). Le ping des sondes est jeté par Alloy.
+  addInternals: true
 
 # Logs propres de Traefik en JSON aussi (non collectés, mais lisibles avec kubectl logs | jq)
 log:

@@ -16,13 +16,17 @@ environnement. Désactiver supprime le ConfigMap, donc le dashboard.
 
 | Nom | Fichier | Données | Contenu |
 |---|---|---|---|
-| `http` | `dashboards/http.json` | Loki, `log_type="http_access"` | requêtes totales et par seconde, requêtes par classe et par code HTTP, octets reçus / envoyés, IPs clientes (top 20), requêtes par hôte |
+| `http` | `dashboards/http.json` | Loki, `log_type="http_access"` et `"traefik"` | filtres Traefik (principal / gateways), environnement, projet, application, chemin ; requêtes totales, par environnement, par projet, par classe et par code HTTP, octets reçus / envoyés, endpoints (volume, 4xx, 5xx, p95), IPs clientes, réponses produites par un middleware, erreurs Traefik par middleware, logs d'accès |
 | `business` | `dashboards/business.json` | Loki, `log_type="business"` | volume par couche (controller, service, db), erreurs par service, durée p95 par méthode, méthodes en erreur, requêtes base lentes ou en erreur |
-| `infra` | `dashboards/infra.json` | Loki, `log_type="infra"` + CloudWatch | critiques / erreurs, par source et par niveau, composants en erreur, motifs des événements Warning, nœuds, control plane EKS (erreurs API server, accès refusés, actions sensibles de l'audit) |
+| `infra` | `dashboards/infra.json` | Loki, `log_type="infra"` | critiques / erreurs, par source et par niveau, composants en erreur, motifs des événements Warning, nœuds |
 
-Les labels `log_type`, `source`, `level`, `layer` sont posés par Alloy
-(`values/common/alloy.yaml`, `alloy-events.yaml`) ; `infra` lit aussi
-`eksLogGroup` (groupe CloudWatch du control plane, Terraform `eks`).
+Versions : 0.1.0 (initiale) ; 0.1.1 : dashboard HTTP par environnement / projet /
+application / endpoint, gateways des projets et middlewares Traefik, variables
+Loki corrigées (listes Environnement, Projet, Service du dashboard métier), section
+control plane EKS (CloudWatch) retirée du dashboard infra.
+
+Les labels `log_type`, `source`, `level`, `layer`, `env`, `project`, `application` sont posés par Alloy
+(`values/common/alloy.yaml`, `alloy-events.yaml`).
 
 ## Modifier un dashboard
 
@@ -30,14 +34,14 @@ Les labels `log_type`, `source`, `level`, `layer` sont posés par Alloy
    provisionnés ne s'enregistrent pas), puis *Export > JSON*.
 2. Remplacer `dashboards/<nom>.json` dans une **nouvelle version** du chart
    (`cp -r 0.1.0 0.1.1`, `version:` dans `Chart.yaml`), garder `uid` et les
-   datasources `{"type": "loki", "uid": "loki"}` / `{"type": "cloudwatch", "uid": "cloudwatch"}`.
+   datasource `{"type": "loki", "uid": "loki"}`.
 3. Monter `tools.grafana-dashboards.version` dans `gitops/values/<env>/cluster.yaml`.
 
 ## Tester
 
 ```bash
 cd chart-base
-helm template grafana-dashboards grafana-dashboards/0.1.0 -n logging \
+helm template grafana-dashboards grafana-dashboards/0.1.1 -n logging \
   -f ../gitops/values/common/grafana-dashboards.yaml \
   -f ../gitops/values/dev/grafana-dashboards.yaml
 ```

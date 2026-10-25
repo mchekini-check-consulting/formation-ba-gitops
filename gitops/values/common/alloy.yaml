@@ -3,7 +3,10 @@
 # Événements Kubernetes : Application alloy-events (une seule instance).
 #
 # Chaque flux reçoit log_type, base des dashboards (chart grafana-dashboards) :
-#   http_access  logs d'accès JSON du Traefik principal (pas les gateways par projet)
+#   http_access  logs d'accès JSON : Traefik principal (source=ingress) et gateways des
+#                projets (source=gateway) ; labels env, project, application tirés de
+#                l'hôte (<application>.<projet>.<env>.check-consulting.net) ou du pod
+#   traefik      logs propres de Traefik (configuration, middlewares), warn et au-delà
 #   business     backends des projets (tier=backend), lignes JSON avec layer
 #                controller|service|db UNIQUEMENT ; le reste (démarrage Nest, TypeORM...) est jeté
 #   infra        source=kube-system : warn, error, critical
@@ -106,14 +109,36 @@ alloy:
         }
       }
 
-      // --- Logs d'accès HTTP : Traefik principal -----------------------------
+      // --- HTTP : Traefik principal (source=ingress) et gateways des projets
+      //     (source=gateway, charts-ba-formations >= 0.9.0, tier=gateway)
       discovery.relabel "traefik" {
         targets = discovery.relabel.pods.output
         rule {
           source_labels = ["__meta_kubernetes_namespace", "__meta_kubernetes_pod_container_name"]
           separator     = "/"
           regex         = "traefik/traefik"
+          target_label  = "source"
+          replacement   = "ingress"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_label_tier"]
+          regex         = "gateway"
+          target_label  = "source"
+          replacement   = "gateway"
+        }
+        rule {
+          source_labels = ["source"]
+          regex         = "ingress|gateway"
           action        = "keep"
+        }
+        // Gateway : environnement et projet connus par les labels du pod
+        rule {
+          source_labels = ["__meta_kubernetes_pod_label_env"]
+          target_label  = "env"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_part_of"]
+          target_label  = "project"
         }
       }
 
@@ -133,14 +158,68 @@ alloy:
         stage.label_drop {
           values = ["filename"]
         }
-        // Logs d'accès seulement (JSON avec ClientHost) ; logs propres de Traefik jetés
+
+        // Logs propres de Traefik (configuration, middlewares, backends injoignables) :
+        // log_type=traefik, warn et au-delà
         stage.match {
-          selector            = `{namespace="traefik"} != "ClientHost"`
-          action              = "drop"
-          drop_counter_reason = "traefik_not_access_log"
+          selector = `{source=~"ingress|gateway"} != "ClientHost"`
+          stage.json {
+            expressions = { level = "level" }
+          }
+          stage.labels {
+            values = { level = "" }
+          }
+          stage.static_labels {
+            values = { log_type = "traefik" }
+          }
         }
-        stage.static_labels {
-          values = { log_type = "http_access" }
+        stage.match {
+          selector            = `{log_type="traefik", level!~"warn|error|fatal|panic"}`
+          action              = "drop"
+          drop_counter_reason = "traefik_below_warn"
+        }
+
+        // Logs d'accès : log_type=http_access
+        stage.match {
+          selector = `{source=~"ingress|gateway"} |= "ClientHost"`
+
+          stage.json {
+            expressions = { host = "RequestHost", router = "RouterName" }
+          }
+          // Sondes de Traefik (ping@internal) : bruit
+          stage.drop {
+            source              = "router"
+            value               = "ping@internal"
+            drop_counter_reason = "traefik_ping"
+          }
+          // <application>.<projet>.<env>.check-consulting.net (applications des projets)
+          // <application>.<env>.check-consulting.net          (outils : project=plateforme)
+          stage.regex {
+            source     = "host"
+            expression = `^(?P<application>[^.]+)\.(?:(?P<project>[^.]+)\.)?(?P<env>dev|qualif|preprod|prod)\.check-consulting\.net(?::\d+)?$`
+          }
+          // Contenu passé à tpl par le chart : template Alloy protégé dans une chaîne brute Helm
+          stage.template {
+            source   = "project"
+            template = {{ `"{{ if .env }}{{ or .project \"plateforme\" }}{{ end }}"` }}
+          }
+          stage.labels {
+            values = { application = "", project = "", env = "" }
+          }
+          // Gateway : l'application est le backend appelé (routeur <backend>@file)
+          stage.match {
+            selector = `{source="gateway"}`
+            stage.regex {
+              source     = "router"
+              expression = `^(?P<backend>[^@]+)@`
+            }
+            stage.labels {
+              values = { application = "backend" }
+            }
+          }
+          stage.static_labels {
+            values = { log_type = "http_access" }
+          }
         }
         forward_to = [loki.write.default.receiver]
       }

@@ -1,0 +1,7 @@
+apiVersion: v2
+name: grafana-dashboards
+description: >-
+  Dashboards de logs de la plateforme (trafic HTTP, logs métier, infrastructure),
+  un ConfigMap par dashboard activé, chargé par le sidecar de Grafana.
+type: application
+version: 0.1.1

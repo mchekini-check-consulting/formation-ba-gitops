@@ -1,0 +1,21 @@
+# Dashboards : un fichier dashboards/<nom>.json par entrée. Tous désactivés par
+# défaut : chaque environnement active ceux qu'il veut (values/<env>/grafana-dashboards.yaml).
+# Désactiver = ConfigMap supprimée = dashboard retiré de Grafana.
+dashboards:
+  # Logs d'accès du Traefik principal : requêtes, codes HTTP, octets, IPs clientes
+  http:
+    enabled: false
+  # Logs métier des backends : couches controller, service, db
+  business:
+    enabled: false
+  # kube-system, plateforme (argocd, cnpg, keycloak), nœuds, événements Kubernetes
+  infra:
+    enabled: false
+
+# Dossier Grafana des dashboards (annotation grafana_folder lue par le sidecar)
+folder: Logs
+
+# Label attendu par le sidecar de Grafana (sidecar.dashboards.label / labelValue)
+sidecarLabel:
+  name: grafana_dashboard
+  value: "1"
