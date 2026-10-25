@@ -1,0 +1,51 @@
+# Injectés par l'ApplicationSet : ne pas remplir
+env: ""
+project: ""
+
+# Hosts des Ingress (enregistrements DNS créés par external-dns vers le NLB Traefik) :
+#   frontend/gateway : <application>.<project>.<env>.<domain>
+#   backend : jamais d'Ingress (Service ClusterIP seulement) ; exposé, si le
+#             projet a une application type: gateway, par le pod gateway de
+#             CE projet (petit Traefik autonome, gateway-config.yaml, routes
+#             générées depuis les backends du même helm.yaml — ingress ne
+#             s'applique jamais directement à un backend)
+domain: check-consulting.net
+ingressClassName: traefik
+
+# Certificat TLS *.<project>.<env>.<domain> : ClusterIssuer de la plateforme
+# (gitops/values/<env>/cert-manager.yaml)
+clusterIssuer: letsencrypt
+
+# Bases PostgreSQL et sauvegardes : gitops/values/<common|env>/databases.yaml
+# (ajouté par l'ApplicationSet après helm.yaml : la politique de la plateforme l'emporte).
+databases: {}
+
+# Fourni par le helm.yaml du dépôt projet.
+# Valeurs littérales uniquement (pas de {{ }}). replicas, tag et envList[].value
+# acceptent une valeur unique ou une map par environnement : { dev: 1, qualif: 2 }
+#
+# database (optionnel) : base PostgreSQL du composant, créée automatiquement
+#   database: true             base <name> (tirets remplacés par _)
+#   database: {name: compta}   base compta
+# Un Cluster CloudNativePG app-db par namespace (<env>-<projet>), une base par
+# composant, rôle app commun (Secret app-db-app). Variables injectées dans le
+# conteneur : PGHOST PGPORT PGDATABASE PGUSER PGPASSWORD DATABASE_URL
+# SPRING_DATASOURCE_URL SPRING_DATASOURCE_USERNAME SPRING_DATASOURCE_PASSWORD
+applications: []
+
+# Fourni, optionnellement, par gateway.yaml à la racine du dépôt projet (lu par
+# l'ApplicationSet comme values Helm, ignoré s'il est absent). Chaîne passée à
+# tpl avec {{ "{{ .project }}" }}/{{ "{{ .env }}" }}/{{ "{{ .domain }}" }} disponibles : routage/CORS/etc.
+# personnalisés du pod gateway (type: gateway), au format natif du "file
+# provider" de Traefik. Absent : gateway-config.yaml génère le routage par
+# défaut depuis les backends du helm.yaml.
+gatewayConfig: ""
+
+# Pod gateway : adresses dont il accepte les en-têtes X-Forwarded-* (IP réelle du
+# client posée par le Traefik principal). Sans elles, Traefik les remplace par
+# l'adresse de la connexion : les logs d'accès ne montrent que l'IP du pod Traefik
+# principal. = CIDR du VPC (formation-ba-landingzone, module eks : vpc_cidr) : les
+# pods ont une IP du VPC (VPC CNI). Le Traefik principal, exposé à internet, ne
+# fait lui confiance à personne : un X-Forwarded-For envoyé par le client est écrasé.
+gatewayTrustedIPs:
+  - 10.4.0.0/16
