@@ -3,10 +3,7 @@
 #     PKCE), formulaire de connexion désactivé ; rôle Grafana = rôle du client
 #     (matrice d'accès values/common/access.yaml), sans rôle : accès refusé
 #   - base : Cluster CloudNativePG grafana-db (Application grafana-db, wave 20)
-#   - datasources (fichiers des values, non modifiables dans l'interface) :
-#       Loki (logs du cluster) et CloudWatch (logs du control plane EKS, rôle IAM de
-#       formation-ba-landingzone aws/environments/<env>/logs, Pod Identity sur
-#       logging/grafana)
+#   - datasource (fichier des values, non modifiable dans l'interface) : Loki
 #   - dashboards : aucun livré par le chart ; uniquement ceux du chart maison
 #     grafana-dashboards (ConfigMaps label grafana_dashboard, sidecar), tous
 #     désactivés par défaut et activés par environnement
@@ -14,7 +11,7 @@
 
 serviceAccount:
   create: true
-  name: grafana   # = grafana_service_account du module Terraform logs
+  name: grafana
 
 replicas: 1
 
@@ -87,16 +84,16 @@ grafana.ini:
     role_attribute_strict: true
     allow_assign_grafana_admin: true
     skip_org_role_sync: false
-  # Pod Identity : chaîne de credentials AWS par défaut (pas de clé)
-  aws:
-    allowed_auth_providers: default
-    assume_role_enabled: false
 
 datasources:
   datasources.yaml:
     apiVersion: 1
     # Datasources des values uniquement : celles créées à la main sont supprimées
     prune: true
+    # Retirée (logs du control plane EKS abandonnés) : supprimée de la base de Grafana
+    deleteDatasources:
+      - name: CloudWatch
+        orgId: 1
     datasources:
       - name: Loki
         uid: loki
@@ -108,16 +105,6 @@ datasources:
         jsonData:
           maxLines: 1000
           timeout: 120
-      # Logs du control plane EKS (api, audit). Groupe : dashboard infra
-      # (grafana-dashboards, eksLogGroup).
-      - name: CloudWatch
-        uid: cloudwatch
-        type: cloudwatch
-        access: proxy
-        editable: false
-        jsonData:
-          authType: default
-          defaultRegion: eu-west-3
 
 # Dashboards : rien de livré par le chart, seulement les ConfigMaps du chart
 # grafana-dashboards (même namespace), un dossier par annotation grafana_folder,
