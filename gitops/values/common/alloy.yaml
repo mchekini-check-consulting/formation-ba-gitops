@@ -261,6 +261,12 @@ alloy:
         stage.json {
           expressions = { layer = "layer", level = "level" }
         }
+        // Casse non uniforme selon le logger applicatif (DEBUG/INFO vs debug/info) :
+        // normalisée ici pour que le label Loki (et le filtre Grafana) soit cohérent.
+        stage.template {
+          source   = "level"
+          template = {{ `"{{ ToLower .level }}"` }}
+        }
         stage.labels {
           values = { layer = "", level = "" }
         }
