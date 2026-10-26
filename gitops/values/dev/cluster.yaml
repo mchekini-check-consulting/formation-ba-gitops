@@ -72,4 +72,4 @@ tools:
   grafana:
     version: 14.0.1    # Grafana 13.2.4
   grafana-dashboards:
-    version: 0.1.3     # chart maison chart-base/grafana-dashboards
+    version: 0.1.4     # chart maison chart-base/grafana-dashboards
