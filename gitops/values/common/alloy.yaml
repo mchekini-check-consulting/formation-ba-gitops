@@ -261,11 +261,13 @@ alloy:
         stage.json {
           expressions = { layer = "layer", level = "level" }
         }
-        // Casse non uniforme selon le logger applicatif (DEBUG/INFO vs debug/info) :
-        // normalisée ici pour que le label Loki (et le filtre Grafana) soit cohérent.
+        // Casse et vocabulaire non uniformes selon le logger applicatif
+        // (DEBUG/INFO vs debug/info ; Python logging nomme son niveau WARNING,
+        // pas WARN comme les autres stacks) : normalisés ici pour que le label
+        // Loki (et le filtre Grafana) soit cohérent quelle que soit la stack.
         stage.template {
           source   = "level"
-          template = {{ `"{{ ToLower .level }}"` }}
+          template = {{ `"{{ $l := ToLower .level }}{{ if eq $l \"warning\" }}warn{{ else if eq $l \"critical\" }}error{{ else }}{{ $l }}{{ end }}"` }}
         }
         stage.labels {
           values = { layer = "", level = "" }
