@@ -11,6 +11,13 @@ configs:
   rbac:
     create: false
   cm:
+    # Relecture des dépôts Git toutes les 60 s (+ 0 à 10 s), au lieu de 120 s
+    # (+ 0 à 60 s) par défaut : un nouveau composant de helm.yaml est vu plus vite
+    # par le pipeline Kargo de son projet (Application kargo-pipelines-<projet>).
+    # Coût : un git ls-remote par source et par minute (manifests en cache tant que
+    # le commit ne change pas).
+    timeout.reconciliation: 60s
+    timeout.reconciliation.jitter: 10s
     # Sans ce health check, une Application est toujours "Healthy" pour l'app
     # racine : les sync-waves (crds -10 -> outils 0) n'attendraient rien.
     resource.customizations.health.argoproj.io_Application: |
