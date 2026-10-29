@@ -1,0 +1,25 @@
+{{- /* Certificat wildcard *.<project>.<env>.<domain> du projet, émis par cert-manager
+       (ClusterIssuer de la plateforme) : couvre tous les hosts <application>.<project>.<env>.<domain>.
+       Le wildcard de la plateforme (*.<env>.<domain>) ne couvre qu'un niveau.
+       Les backends n'ont pas d'Ingress directement (exposés par le pod
+       gateway du projet, type: gateway, s'il en a un). */}}
+{{- $ingress := false }}
+{{- range .Values.applications }}
+{{- if and (.ingress | default dict).enabled (ne .type "backend") (include "gba.deployed" (dict "app" . "env" $.Values.env)) }}{{ $ingress = true }}{{ end }}
+{{- end }}
+{{- if $ingress }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ include "gba.tlsSecret" . }}
+  labels:
+    app.kubernetes.io/part-of: {{ .Values.project }}
+    env: {{ .Values.env }}
+spec:
+  secretName: {{ include "gba.tlsSecret" . }}
+  dnsNames:
+    - "*.{{ .Values.project }}.{{ .Values.env }}.{{ .Values.domain }}"
+  issuerRef:
+    kind: ClusterIssuer
+    name: {{ .Values.clusterIssuer }}
+{{- end }}

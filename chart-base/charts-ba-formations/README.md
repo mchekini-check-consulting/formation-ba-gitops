@@ -20,7 +20,7 @@ Version utilisée : `business.charts.app` dans `gitops/values.yaml`.
 
 | Fichier | Produit | Pour |
 |---|---|---|
-| `deployment.yaml` | Deployment | chaque application ; `tag`, `replicas`, `envList` par environnement. `type: gateway` : image Traefik fournie par la plateforme (pas de `tag` dans helm.yaml), config montée depuis `gateway-config.yaml` |
+| `deployment.yaml` | Deployment | chaque application ayant un `tag` pour l'environnement (sinon ignorée, comme dans les autres fichiers sauf `database.yaml`) ; `tag`, `replicas`, `envList` par environnement. `type: gateway` : image Traefik fournie par la plateforme (pas de `tag` dans helm.yaml), config montée depuis `gateway-config.yaml` |
 | `service.yaml` | Service `<application>` | chaque application |
 | `ingress.yaml` | Ingress `<application>.<projet>.<env>.<domaine>` (+ Middleware strip) | frontends/gateways avec `ingress.enabled` |
 | `gateway-config.yaml` | ConfigMap `<gateway>-config` : routes Traefik — `gatewayConfig` (de `gateway.yaml`, rendu avec `tpl`) si fourni, sinon une route par backend générée automatiquement (préfixe retiré, CORS pour les frontends) | applications `type: gateway` |
@@ -36,7 +36,9 @@ applications:
   - name: backend                 # nom du Deployment et du Service
     type: backend                 # backend : jamais d'Ingress direct ; sinon host propre
     image: <registre>/<projet>/backend
-    tag: {dev: abc1234, qualif: abc1234}   # écrit par Kargo
+    tag:                          # écrit par Kargo ; vide = pas encore déployé
+      dev: abc1234
+      qualif: ""
     containerPort: 8080
     replicas: {dev: 1, prod: 2}   # valeur unique ou map par environnement
     service: {port: 80}
@@ -91,8 +93,8 @@ valant pour les 4 environnements (dev/qualif/preprod/prod) plutôt que d'en
 
 ```bash
 cd chart-base
-helm dependency build charts-ba-formations/0.9.1
-helm template formation-ba-scpi-invest charts-ba-formations/0.9.1 \
+helm dependency build charts-ba-formations/0.9.2
+helm template formation-ba-scpi-invest charts-ba-formations/0.9.2 \
   -n dev-formation-ba-scpi-invest \
   -f ../../formation-ba-scpi-invest/helm.yaml \
   -f ../gitops/values/common/databases.yaml -f ../gitops/values/dev/databases.yaml \
@@ -101,8 +103,15 @@ helm template formation-ba-scpi-invest charts-ba-formations/0.9.1 \
 
 ## Pièges
 
-- Un `tag` vide pour l'environnement fait échouer le rendu : remplir `tag.<env>`
-  avant d'ajouter un environnement (ne s'applique pas à `type: gateway`, qui n'a
-  pas de `tag`).
+- Un composant dont le `tag` est vide pour l'environnement n'est pas déployé
+  dans cet environnement (ni Deployment, ni Service, ni Ingress, ni route du
+  gateway par défaut) : c'est le cas d'un composant tout juste ajouté, tant que
+  la CI n'a pas construit son image et que Kargo ne l'a pas promu. Sa base,
+  elle, est créée dès l'ajout. Avec un `gateway.yaml`, sa route existe déjà et
+  répond 502 jusqu'au déploiement. Jusqu'à 0.9.1, un tag vide faisait échouer
+  le rendu de tout le projet.
+- `tag` toujours en format bloc, une valeur par ligne (`dev: ""` sous `tag:`) :
+  Kargo réécrit `applications.<index>.tag.<env>`, jamais un `{dev: "", ...}`
+  sur une seule ligne.
 - Un backend sans application `type: gateway` dans le même `helm.yaml` n'est
   joignable que depuis l'intérieur du cluster (Service ClusterIP).

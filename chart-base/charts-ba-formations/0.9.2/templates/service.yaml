@@ -1,0 +1,20 @@
+{{- range $app := .Values.applications }}
+{{- if include "gba.deployed" (dict "app" $app "env" $.Values.env) }}
+{{- $ctx := dict "app" $app "root" $ }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $app.name }}
+  labels:
+    {{- include "gba.labels" $ctx | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "gba.selectorLabels" $ctx | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ ($app.service).port | default 80 }}
+      targetPort: http
+{{- end }}
+{{- end }}

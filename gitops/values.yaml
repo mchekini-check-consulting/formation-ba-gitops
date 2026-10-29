@@ -249,7 +249,7 @@ business:
   enabled: true
   # Charts maison de chart-base (même dépôt que chartBase de cluster.yaml)
   charts:
-    app: charts-ba-formations/0.9.1     # chart applicatif des projets (dont type: gateway, logs d'accès JSON, IP client réelle)
+    app: charts-ba-formations/0.9.2     # chart applicatif des projets (dont type: gateway, logs d'accès JSON, IP client réelle, composant sans tag ignoré)
     pipelines: kargo-pipelines/0.4.1    # Project, Warehouse, Stages Kargo (1 Application/projet)
 
   # Dépôts métier : <github>/<projet>.git, branche lue par ArgoCD et écrite par Kargo
