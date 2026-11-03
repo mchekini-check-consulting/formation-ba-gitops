@@ -1,0 +1,31 @@
+{{- /* Base PostgreSQL du projet dans ce namespace : un Cluster app-db, une base
+       logique par application qui déclare database, sauvegardes S3 (pg-lib).
+       Configuration : databases.defaults < databases.projects.<projet>
+       (gitops/values/<common|env>/databases.yaml) ; les bases viennent de helm.yaml. */}}
+{{- $dbs := dict }}
+{{- range .Values.applications }}
+{{- $db := include "gba.dbName" . }}
+{{- if $db }}
+{{- if hasKey $dbs $db }}
+{{- fail (printf "base %s déclarée par deux applications" $db) }}
+{{- end }}
+{{- $_ := set $dbs $db dict }}
+{{- end }}
+{{- end }}
+{{- if $dbs }}
+{{- $vals := deepCopy .Values }}
+{{- $databases := required "databases requis (ApplicationSet : gitops/values/<common|env>/databases.yaml)" $vals.databases }}
+{{- $_ := set $databases "env" .Values.env }}
+{{- $projects := $databases.projects | default dict }}
+{{- $project := index $projects .Values.project | default dict }}
+{{- /* Bases de helm.yaml + réglages par base de databases.projects.<projet>.databases */}}
+{{- $_ := set $project "databases" (include "pg-lib.merge" (dict "base" $dbs "over" ($project.databases | default dict)) | fromYaml) }}
+{{- $_ := set $projects .Values.project $project }}
+{{- $_ := set $databases "projects" $projects }}
+{{- $ctx := include "pg-lib.config" (dict
+      "Values" $vals
+      "name" (include "gba.dbCluster" .)
+      "namespace" .Release.Namespace
+      "project" .Values.project) | fromYaml }}
+{{- include "pg-lib.all" $ctx }}
+{{- end }}

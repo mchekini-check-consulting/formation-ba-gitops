@@ -89,12 +89,45 @@ gatewayConfig: |
 valant pour les 4 environnements (dev/qualif/preprod/prod) plutôt que d'en
 écrire une copie par environnement.
 
+### Plugins Traefik (authentification JWT)
+
+Le pod gateway peut charger les plugins Traefik du catalogue `gatewayPlugins`
+(`values.yaml` du chart, version épinglée par la plateforme). Un plugin n'est
+activé (arguments `--experimental.plugins.<nom>.*`, téléchargement depuis
+plugins.traefik.io au démarrage du pod) que si un middleware de `gateway.yaml`
+l'utilise (`http.middlewares.<middleware>.plugin.<nom>`). Exemple, JWT émis par
+le realm Keycloak des projets, `sub` et rôles transmis au backend en en-têtes :
+
+```yaml
+    routers:
+      backend:
+        rule: "PathPrefix(`/backend`)"
+        service: backend
+        middlewares: [cors, jwt, backend-strip]   # cors d'abord : preflight OPTIONS sans token
+    middlewares:
+      jwt:
+        plugin:
+          jwt:
+            issuers:
+              - https://keycloak.{{ .env }}.{{ .domain }}/realms/check-projects-sso
+            require:
+              azp: <client du frontend>
+            headerMap:
+              X-User-Sub: sub
+              X-User-Roles: roles       # tableau -> JSON : ["admin","lecteur"]
+            removeMissingHeaders: true  # X-User-* envoyés par le client jamais transmis
+            forwardToken: false
+```
+
+Token absent ou invalide : 401, requête refusée par le gateway (le backend n'est
+pas appelé) ; claim de `require` non satisfait : 403.
+
 ## Tester
 
 ```bash
 cd chart-base
-helm dependency build charts-ba-formations/0.9.2
-helm template formation-ba-scpi-invest charts-ba-formations/0.9.2 \
+helm dependency build charts-ba-formations/0.9.3
+helm template formation-ba-scpi-invest charts-ba-formations/0.9.3 \
   -n dev-formation-ba-scpi-invest \
   -f ../../formation-ba-scpi-invest/helm.yaml \
   -f ../gitops/values/common/databases.yaml -f ../gitops/values/dev/databases.yaml \
