@@ -62,6 +62,13 @@ controller:
     integrationEnabled: false
   argocd:
     namespace: argocd
+  # Le chart impose 5 min minimum entre deux scrutations ECR d'un Warehouse, même
+  # si warehouse.interval (kargo-pipelines) vaut 1m : une image poussée par la CI
+  # attendait jusqu'à 5 min avant d'être promue en dev. Aligné sur 1m (appels
+  # ECR DescribeImages gratuits, quelques dizaines par minute pour tous les projets).
+  reconcilers:
+    warehouses:
+      minReconciliationInterval: "1m0s"
 
 # Pas de webhooks entrants (GitHub/ECR) : les Warehouses interrogent ECR (polling)
 externalWebhooksServer:
