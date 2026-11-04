@@ -1,0 +1,40 @@
+# Tests de bout en bout (e2e) d'un composant : "make e2e-tests", défini dans le
+# Makefile du composant (ex. Playwright pour un frontend). Cible optionnelle : un
+# composant sans cible e2e-tests (ex. un backend) est ignoré, sans erreur.
+# En cas d'échec, le rapport Playwright (playwright-report/) est publié en
+# artifact e2e-<composant>.
+name: e2e-test
+description: Tests de bout en bout d'un composant
+
+inputs:
+  component:
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - id: cible
+      shell: bash
+      working-directory: ${{ inputs.component }}
+      run: |
+        if grep -qE '^e2e-tests:' Makefile; then
+          echo "presente=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "::notice::${{ inputs.component }} : pas de cible e2e-tests dans le Makefile, ignoré"
+          echo "presente=false" >> "$GITHUB_OUTPUT"
+        fi
+    - if: steps.cible.outputs.presente == 'true'
+      uses: mchekini-check-consulting/formation-ba-gitops/ci-template/setup@main
+      with:
+        component: ${{ inputs.component }}
+    - if: steps.cible.outputs.presente == 'true'
+      shell: bash
+      working-directory: ${{ inputs.component }}
+      run: make e2e-tests
+    - if: failure() && steps.cible.outputs.presente == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: e2e-${{ inputs.component }}
+        path: ${{ inputs.component }}/playwright-report
+        if-no-files-found: ignore
+        retention-days: 7
