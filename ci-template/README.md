@@ -25,10 +25,13 @@ Pull request (`pr.yaml`) :
 | `unit-test`        | `make test-unit` (tests + rapport de couverture, publiés en artifact)    |
 | `sonarqube`        | analyse du composant + attente du quality gate (job après unit-test)     |
 | `integration-test` | `make test-integration`                                                  |
+| `e2e-test`         | `make e2e-tests` (job après integration-test), ignoré si le Makefile n'a pas cette cible ; rapport Playwright publié en artifact `e2e-<composant>` en cas d'échec |
 
 Contrat de chaque composant (dossier avec Dockerfile) :
 - `Makefile` avec les cibles `lint`, `test-unit`, `test-integration` : la CI ne connaît
   pas les commandes de la stack, elle appelle seulement ces cibles (utilisables en local).
+  Cible `e2e-tests` optionnelle (tests de bout en bout, ex. Playwright ; installe
+  elle-même ses navigateurs).
 - `sonar-project.properties` : sources, tests et chemin du rapport de couverture produit
   par `test-unit`. Projet Sonar : `<dépôt>-<composant>`.
 
