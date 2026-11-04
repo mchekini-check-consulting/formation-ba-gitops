@@ -57,6 +57,24 @@ Variables injectées par `database` (avant `envList`) : `PGHOST`, `PGPORT`,
 `PGDATABASE`, `PGUSER`, `PGPASSWORD`, `DATABASE_URL`, `SPRING_DATASOURCE_URL`,
 `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`.
 
+## Variables prises dans un Secret (`envFrom`)
+
+Pour donner à un composant les variables d'un Secret déjà présent dans son
+namespace (`<env>-<projet>`, créé hors du chart, ex. clés d'accès S3) :
+
+```yaml
+  - name: backend
+    type: backend
+    envFrom:
+      - secret: backend-s3
+        optional: true   # pod démarré même si le Secret est absent de l'environnement
+```
+
+Chaque clé du Secret devient une variable du même nom (nom de variable valide
+requis : `S3_BUCKET`, pas `s3.bucket`). Une variable de `database`/`envList`
+de même nom l'emporte. Un Secret modifié n'est pris en compte qu'au
+redémarrage du pod (`kubectl -n <env>-<projet> rollout restart deploy/<name>`).
+
 ## `gateway.yaml` (optionnel, racine du dépôt projet)
 
 Pour personnaliser le routage/CORS/etc. du pod `gateway` au lieu du routage
@@ -126,8 +144,8 @@ pas appelé) ; claim de `require` non satisfait : 403.
 
 ```bash
 cd chart-base
-helm dependency build charts-ba-formations/0.9.3
-helm template formation-ba-scpi-invest charts-ba-formations/0.9.3 \
+helm dependency build charts-ba-formations/0.9.4
+helm template formation-ba-scpi-invest charts-ba-formations/0.9.4 \
   -n dev-formation-ba-scpi-invest \
   -f ../../formation-ba-scpi-invest/helm.yaml \
   -f ../gitops/values/common/databases.yaml -f ../gitops/values/dev/databases.yaml \
