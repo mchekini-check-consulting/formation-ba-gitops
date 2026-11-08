@@ -31,7 +31,7 @@ spec:
   sourceRepos:
     {{- toYaml (list (required "chartBase.repoURL requis" $.Values.chartBase.repoURL) (required "gitops.repoURL requis" $.Values.gitops.repoURL) | uniq) | nindent 4 }}
     {{- range .projects }}
-    - {{ $.Values.business.github }}/{{ .name }}.git
+    - {{ .github | default $.Values.business.github }}/{{ .name }}.git
     {{- end }}
   # namespace "*" : l'Application n'a pas de namespace par défaut (chaque ressource
   # Kargo porte le sien). Le périmètre est limité par les whitelists ci-dessous
@@ -67,6 +67,7 @@ spec:
         elements:
           {{- range .projects }}
           - project: {{ .name }}
+            github: {{ .github | default $.Values.business.github }}
           {{- end }}
   # Retirer un projet supprime son Application Kargo, pas ses objets déjà déployés
   syncPolicy:
@@ -90,12 +91,12 @@ spec:
               - $app/helm.yaml
             valuesObject:
               project: '{{`{{ .project }}`}}'
-              github: {{ .github }}
+              github: '{{`{{ .github }}`}}'
               branch: {{ .branch }}
               registry: {{ .registry }}
               envs:
                 {{- toYaml .envs | nindent 16 }}
-        - repoURL: '{{ .github }}/{{`{{ .project }}`}}.git'
+        - repoURL: '{{`{{ .github }}/{{ .project }}.git`}}'
           targetRevision: {{ .branch }}
           ref: app
         - repoURL: {{ $.Values.gitops.repoURL }}

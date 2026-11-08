@@ -33,6 +33,7 @@ spec:
               elements:
                 {{- range .projects }}
                 - project: {{ .name }}
+                  github: {{ .github | default $.Values.business.github }}
                 {{- end }}
   # Retirer un projet ou un environnement supprime l'Application, mais pas les
   # Deployments, Services... déjà déployés (suppression = geste manuel)
@@ -65,7 +66,7 @@ spec:
                 value: '{{`{{ .env }}`}}'
               - name: project
                 value: '{{`{{ .project }}`}}'
-        - repoURL: '{{ .github }}/{{`{{ .project }}`}}.git'
+        - repoURL: '{{`{{ .github }}/{{ .project }}.git`}}'
           targetRevision: {{ .branch }}
           ref: app
         - repoURL: {{ required "gitops.repoURL requis" $.Values.gitops.repoURL }}

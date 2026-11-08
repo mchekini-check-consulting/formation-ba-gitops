@@ -18,10 +18,10 @@ metadata:
     argocd.argoproj.io/sync-wave: "50"
     argocd.argoproj.io/sync-options: Prune=false
 spec:
-  description: {{ $.Values.business.github }}/{{ .name }}
+  description: {{ .github | default $.Values.business.github }}/{{ .name }}
   sourceRepos:
     {{- toYaml (list (required "chartBase.repoURL requis" $.Values.chartBase.repoURL) (required "gitops.repoURL requis" $.Values.gitops.repoURL) | uniq) | nindent 4 }}
-    - {{ $.Values.business.github }}/{{ .name }}.git
+    - {{ .github | default $.Values.business.github }}/{{ .name }}.git
   destinations:
     - name: "*"
       namespace: "*-{{ .name }}"
