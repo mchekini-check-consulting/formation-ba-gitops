@@ -66,10 +66,7 @@ tools:
     version: ""
     namespace: cert-manager
     syncWave: "5"
-  # Métriques : Prometheus Operator + Prometheus (ServiceMonitor/PodMonitor/PrometheusRule).
-  # Alertmanager et Grafana du chart désactivés (values/common/kube-prometheus-stack.yaml) :
-  # pas d'Alertmanager pour l'instant, Grafana déjà déployé (SSO Keycloak). Wave 0 :
-  # aucune dépendance (pas de base, pas de SSO).
+  # Métriques (Prometheus Operator + Prometheus). Wave 0 : aucune dépendance.
   kube-prometheus-stack:
     enabled: true
     version: ""
@@ -250,7 +247,7 @@ business:
   enabled: true
   # Charts maison de chart-base (même dépôt que chartBase de cluster.yaml)
   charts:
-    app: charts-ba-formations/0.9.4     # chart applicatif des projets (dont type: gateway, logs d'accès JSON, IP client réelle, composant sans tag ignoré, plugins Traefik du gateway, envFrom Secret)
+    app: charts-ba-formations/0.9.5     # chart applicatif des projets (dont type: gateway, logs d'accès JSON, IP client réelle, composant sans tag ignoré, plugins Traefik du gateway, envFrom Secret, type: mailpit)
     pipelines: kargo-pipelines/0.4.1    # Project, Warehouse, Stages Kargo (1 Application/projet)
 
   # Dépôts métier : <github>/<projet>.git, branche lue par ArgoCD et écrite par Kargo

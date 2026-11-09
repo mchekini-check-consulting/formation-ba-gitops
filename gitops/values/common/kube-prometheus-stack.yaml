@@ -1,20 +1,12 @@
-# Values communes du chart kube-prometheus-stack : Prometheus Operator + Prometheus.
-#   - Pas d'Alertmanager ni de Grafana pour l'instant : Grafana est déjà déployé
-#     (SSO Keycloak, chart grafana) ; Alertmanager viendra dans un second temps.
-#   - Pas de kube-state-metrics ni de node-exporter : rien n'en a besoin tant que
-#     le scrape se limite aux ServiceMonitor/PodMonitor des outils (métriques
-#     applicatives), stack la plus légère possible.
-#   - kubeControllerManager/kubeScheduler/kubeEtcd/kubeProxy désactivés : control
-#     plane managé par AWS sur EKS, ces endpoints ne sont pas accessibles (cibles
-#     systématiquement down sinon). kubeApiServer/kubelet/coreDns restent actifs :
-#     Services déjà exposés dans le cluster, aucun pod supplémentaire.
-#   - CRDs : crd-base/kube-prometheus-stack/<version> (skipCrds, comme les autres outils).
+# CRDs fournies par crd-base/kube-prometheus-stack/<version>
 crds:
   enabled: false
 
+# Pas encore configuré
 alertmanager:
   enabled: false
 
+# Déjà déployé par ailleurs (SSO Keycloak)
 grafana:
   enabled: false
 
@@ -24,6 +16,7 @@ kubeStateMetrics:
 nodeExporter:
   enabled: false
 
+# Control plane managé par AWS sur EKS : endpoints non accessibles
 kubeControllerManager:
   enabled: false
 kubeScheduler:
@@ -43,9 +36,8 @@ prometheusOperator:
 
 prometheus:
   prometheusSpec:
-    # Sélecteurs ouverts à tout le cluster : les ServiceMonitor/PodMonitor/PrometheusRule
-    # créés par les Applications des autres outils ne portent pas le label de release
-    # de cette Application (nécessaire sinon Prometheus n'en découvre aucun).
+    # Ouverts à tout le cluster : sinon Prometheus ignore les ServiceMonitor/PodMonitor/
+    # PrometheusRule créés par les Applications des autres outils.
     serviceMonitorSelectorNilUsesHelmValues: false
     podMonitorSelectorNilUsesHelmValues: false
     probeSelectorNilUsesHelmValues: false

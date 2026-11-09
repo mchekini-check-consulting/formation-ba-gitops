@@ -36,10 +36,8 @@ tools:
   cert-manager:
     version: v1.21.2
   kube-prometheus-stack:
-    # 93.x (Operator v0.95.1) : image quay.io/prometheus-operator/prometheus-operator:v0.95.1
-    # non multi-arch (manifest-list du tag ne référence qu'amd64, bug de publication
-    # upstream) -> ImagePullBackOff sur ce cluster (nœuds arm64/Graviton).
-    version: 92.22.0   # Prometheus Operator v0.94.2 (multi-arch, dont arm64, vérifié)
+    # 93.x (Operator v0.95.1) : image amd64-only sur quay.io (bug upstream) -> ImagePullBackOff sur ce cluster arm64.
+    version: 92.22.0   # Operator v0.94.2, multi-arch vérifié
   cloudnative-pg:
     version: 0.29.1
   plugin-barman-cloud:

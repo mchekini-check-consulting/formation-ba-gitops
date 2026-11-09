@@ -79,6 +79,42 @@ requis : `S3_BUCKET`, pas `s3.bucket`). Une variable de `database`/`envList`
 de même nom l'emporte. Un Secret modifié n'est pris en compte qu'au
 redémarrage du pod (`kubectl -n <env>-<projet> rollout restart deploy/<name>`).
 
+## `type: mailpit` : serveur SMTP de test
+
+Capture tous les e-mails envoyés par les autres applications du même projet
+(dev/qualif), sans serveur SMTP réel ni authentification à configurer.
+Comme `type: gateway`, fourni par la plateforme : pas d'`image`/`tag` à
+donner dans `helm.yaml`, pas de build/CI/promotion Kargo pour ce composant.
+
+```yaml
+  - name: mailpit
+    type: mailpit
+    ingress: {enabled: true}   # UI de consultation : https://mailpit.<projet>.<env>.<domaine>
+```
+
+Les autres applications du projet lui envoient leurs e-mails via le Service
+`mailpit` (nom court résolu dans le même namespace, donc valable seulement à
+l'intérieur du même projet/environnement) :
+
+```yaml
+    envList:
+      - key: SMTP_HOST
+        value: mailpit
+      - key: SMTP_PORT
+        value: "1025"
+```
+
+Port `smtp` (1025, envoi) et port `http` (8025, UI web de lecture des
+e-mails reçus) fixes, non configurables. Avec `ingress.enabled`, l'UI est
+exposée exactement comme un frontend — même host que les autres applications
+du projet (`<application>.<projet>.<env>.<domaine>`), même certificat
+wildcard du projet (`certificate.yaml`) : pas de nom de domaine partagé à la
+plateforme (à la différence d'un outil comme sonarqube/grafana, une seule
+instance pour toute la plateforme), une instance et un host par projet.
+
+Un seul réplica (`replicas` ignoré) : la boîte de réception vit en mémoire
+dans le pod, pas de stockage partagé entre plusieurs instances.
+
 ## `gateway.yaml` (optionnel, racine du dépôt projet)
 
 Pour personnaliser le routage/CORS/etc. du pod `gateway` au lieu du routage
