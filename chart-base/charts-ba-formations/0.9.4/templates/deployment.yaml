@@ -7,6 +7,11 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ $app.name }}
+  {{- if include "gba.dbName" $app }}
+  annotations:
+    # Après le Cluster (0) et la Database (1) : la base existe quand le pod démarre
+    argocd.argoproj.io/sync-wave: "2"
+  {{- end }}
   labels:
     {{- include "gba.labels" $ctx | nindent 4 }}
 spec:
