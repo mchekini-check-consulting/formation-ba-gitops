@@ -291,6 +291,3 @@ business:
     - name: formation-ba-gestion-financiere
     - name: formation-ba-quali-formation
     - name: formation-ba-scpi-invest
-    # Dépôt personnel, hors de l'org mchekini-check-consulting : github en override.
-    - name: conso-aws
-      github: https://github.com/juba-touam
