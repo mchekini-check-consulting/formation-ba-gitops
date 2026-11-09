@@ -7,6 +7,11 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ $app.name }}
+  {{- if include "gba.dbName" $app }}
+  annotations:
+    # Après le Cluster (0) et la Database (1) : la base existe quand le pod démarre
+    argocd.argoproj.io/sync-wave: "2"
+  {{- end }}
   labels:
     {{- include "gba.labels" $ctx | nindent 4 }}
 spec:
@@ -61,11 +66,9 @@ spec:
             - name: dynamic
               mountPath: /etc/traefik/dynamic
       {{- else if eq $app.type "mailpit" }}
-      # Serveur SMTP de test fourni par la plateforme : pas d'image/tag dans
-      # helm.yaml. Capture tous les e-mails envoyés par le projet (dev/qualif,
-      # aucun serveur SMTP réel), consultables sur l'UI (port http, voir
-      # service.yaml et ingress.yaml). Un seul réplica : la boîte de réception
-      # vit en mémoire dans le pod, pas de stockage partagé entre plusieurs.
+      # Serveur SMTP de test fourni par la plateforme (pas d'image/tag dans
+      # helm.yaml, comme gateway). Un seul réplica : boîte de réception en
+      # mémoire, pas de stockage partagé entre plusieurs instances.
       containers:
         - name: {{ $app.name }}
           image: "axllent/mailpit:v1.33.1"

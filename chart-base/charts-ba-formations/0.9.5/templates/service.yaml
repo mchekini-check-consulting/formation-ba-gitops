@@ -14,8 +14,7 @@ spec:
     {{- include "gba.selectorLabels" $ctx | nindent 4 }}
   ports:
     {{- if eq $app.type "mailpit" }}
-    # Port smtp fixe (1025) : les autres composants du projet envoient leurs
-    # e-mails à "{{ $app.name }}:1025" (SMTP_HOST/SMTP_PORT de leur helm.yaml)
+    # Port smtp fixe (1025, SMTP_HOST/SMTP_PORT des autres applications du projet)
     - name: smtp
       port: 1025
       targetPort: smtp
