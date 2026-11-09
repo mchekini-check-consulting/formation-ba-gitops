@@ -40,6 +40,12 @@ tools:
     repo: https://charts.jetstack.io
     chart: cert-manager
 
+  # Métriques : Prometheus Operator (ServiceMonitor/PodMonitor/PrometheusRule) + Prometheus.
+  # Alertmanager et Grafana du chart désactivés (Grafana déjà déployé, SSO Keycloak).
+  kube-prometheus-stack:
+    repo: https://prometheus-community.github.io/helm-charts
+    chart: kube-prometheus-stack
+
   # Logs : stockage (Loki, objets sur S3), collecte (Alloy, DaemonSet), visualisation
   # (Grafana, SSO Keycloak). Loki et Grafana : dépôt grafana-community (le chart
   # grafana/grafana est figé, grafana/loki vise Grafana Enterprise Logs).
