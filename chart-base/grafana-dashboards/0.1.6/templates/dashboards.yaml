@@ -1,0 +1,29 @@
+{{- /* Un ConfigMap par dashboard activé (dashboards.<nom>.enabled), contenu
+       dashboards/<nom>.json du chart, lu par le sidecar de Grafana (label
+       sidecarLabel, même namespace) et rangé dans le dossier annotation grafana_folder.
+       Fichiers JSON lus sans tpl : la syntaxe {{ }} de Loki et de Grafana y reste
+       telle quelle. */}}
+{{- range $name, $d := .Values.dashboards }}
+{{- if $d.enabled }}
+{{- $file := printf "dashboards/%s.json" $name }}
+{{- $json := $.Files.Get $file }}
+{{- if not $json }}
+{{- fail (printf "dashboards.%s : fichier %s absent du chart" $name $file) }}
+{{- end }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-{{ $name }}
+  labels:
+    {{ $.Values.sidecarLabel.name }}: {{ $.Values.sidecarLabel.value | quote }}
+    app.kubernetes.io/name: grafana-dashboards
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+    app.kubernetes.io/managed-by: {{ $.Release.Service }}
+  annotations:
+    grafana_folder: {{ $d.folder | default $.Values.folder | quote }}
+data:
+  {{ $name }}.json: |-
+    {{- $json | nindent 4 }}
+{{- end }}
+{{- end }}

@@ -20,10 +20,10 @@ Version utilisée : `business.charts.app` dans `gitops/values.yaml`.
 
 | Fichier | Produit | Pour |
 |---|---|---|
-| `deployment.yaml` | Deployment | chaque application ayant un `tag` pour l'environnement (sinon ignorée, comme dans les autres fichiers sauf `database.yaml`) ; `tag`, `replicas`, `envList` par environnement. `type: gateway` : image Traefik fournie par la plateforme (pas de `tag` dans helm.yaml), config montée depuis `gateway-config.yaml` |
-| `service.yaml` | Service `<application>` | chaque application |
-| `ingress.yaml` | Ingress `<application>.<projet>.<env>.<domaine>` (+ Middleware strip) | frontends/gateways avec `ingress.enabled` |
-| `gateway-config.yaml` | ConfigMap `<gateway>-config` : routes Traefik — `gatewayConfig` (de `gateway.yaml`, rendu avec `tpl`) si fourni, sinon une route par backend générée automatiquement (préfixe retiré, CORS pour les frontends) | applications `type: gateway` |
+| `deployment.yaml` | Deployment | chaque application ayant un `tag` pour l'environnement (sinon ignorée, comme dans les autres fichiers sauf `database.yaml`) ; `tag`, `replicas`, `envList` par environnement. `type: gateway` : image Traefik fournie par la plateforme (pas de `tag` dans helm.yaml), config montée depuis `gateway-config.yaml`. `type: mailpit` : image Mailpit fournie par la plateforme (pas de `tag` non plus), deux ports (`smtp` 1025, `http` 8025) |
+| `service.yaml` | Service `<application>` | chaque application ; `type: mailpit` : deux ports (`smtp` 1025, `http` 8025) au lieu d'un seul |
+| `ingress.yaml` | Ingress `<application>.<projet>.<env>.<domaine>` (+ Middleware strip) | frontends/gateways/mailpit avec `ingress.enabled` (route vers le port `http` du Service) |
+| `gateway-config.yaml` | ConfigMap `<gateway>-config` : routes Traefik — `gatewayConfig` (de `gateway.yaml`, rendu avec `tpl`) si fourni, sinon une route par backend générée automatiquement (préfixe retiré, CORS pour les frontends ; `mailpit` jamais ajouté aux origines CORS) | applications `type: gateway` |
 | (aucun) | pas d'Ingress direct pour les backends : Service ClusterIP seulement, exposé par le pod gateway du projet (s'il en a un) | `type: backend` |
 | `certificate.yaml` | Certificate `*.<projet>.<env>.<domaine>` | si au moins un frontend/gateway exposé |
 | `database.yaml` | Cluster `app-db`, une base par application avec `database` (via pg-lib) | applications avec `database` |
@@ -51,6 +51,10 @@ applications:
     type: gateway                 # pas d'image/tag à fournir (plateforme : Traefik)
     replicas: {dev: 1, prod: 2}
     ingress: {enabled: true}      # https://gateway.<projet>.<env>.<domaine>/<backend>/...
+
+  - name: mailpit                 # optionnel : serveur SMTP de test (voir plus bas)
+    type: mailpit                 # pas d'image/tag à fournir (plateforme : Mailpit)
+    ingress: {enabled: true}      # https://mailpit.<projet>.<env>.<domaine> (UI de consultation)
 ```
 
 Variables injectées par `database` (avant `envList`) : `PGHOST`, `PGPORT`,

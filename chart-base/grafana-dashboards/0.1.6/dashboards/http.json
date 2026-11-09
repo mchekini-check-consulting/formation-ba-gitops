@@ -1,0 +1,1717 @@
+{
+  "uid": "logs-http",
+  "title": "Logs — Trafic HTTP",
+  "description": "Logs d'accès de Traefik : principal (ingress du cluster) ou gateways des projets. Volume, codes HTTP, octets, endpoints, IPs clientes, middlewares.",
+  "tags": [
+    "logs",
+    "http",
+    "traefik"
+  ],
+  "editable": false,
+  "graphTooltip": 1,
+  "timezone": "browser",
+  "refresh": "1m",
+  "schemaVersion": 41,
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "liveNow": false,
+  "templating": {
+    "list": [
+      {
+        "name": "source",
+        "label": "Traefik",
+        "type": "custom",
+        "multi": false,
+        "includeAll": false,
+        "query": "Principal (ingress) : ingress,Gateways des projets : gateway",
+        "options": [
+          {
+            "text": "Principal (ingress)",
+            "value": "ingress",
+            "selected": true
+          },
+          {
+            "text": "Gateways des projets",
+            "value": "gateway",
+            "selected": false
+          }
+        ],
+        "current": {
+          "selected": true,
+          "text": "Principal (ingress)",
+          "value": "ingress"
+        }
+      },
+      {
+        "name": "env",
+        "label": "Environnement",
+        "type": "query",
+        "datasource": {
+          "type": "loki",
+          "uid": "loki"
+        },
+        "query": {
+          "qryType": 1,
+          "label": "env",
+          "stream": "{log_type=\"http_access\", source=\"$source\"}",
+          "refId": "LokiVariableQueryEditor-VariableQuery"
+        },
+        "definition": "label_values({log_type=\"http_access\", source=\"$source\"}, env)",
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "sort": 1,
+        "regex": ""
+      },
+      {
+        "name": "project",
+        "label": "Projet",
+        "type": "query",
+        "datasource": {
+          "type": "loki",
+          "uid": "loki"
+        },
+        "query": {
+          "qryType": 1,
+          "label": "project",
+          "stream": "{log_type=\"http_access\", source=\"$source\", env=~\"$env\"}",
+          "refId": "LokiVariableQueryEditor-VariableQuery"
+        },
+        "definition": "label_values({log_type=\"http_access\", source=\"$source\", env=~\"$env\"}, project)",
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "sort": 1,
+        "regex": ""
+      },
+      {
+        "name": "application",
+        "label": "Application",
+        "type": "query",
+        "datasource": {
+          "type": "loki",
+          "uid": "loki"
+        },
+        "query": {
+          "qryType": 1,
+          "label": "application",
+          "stream": "{log_type=\"http_access\", source=\"$source\", env=~\"$env\", project=~\"$project\"}",
+          "refId": "LokiVariableQueryEditor-VariableQuery"
+        },
+        "definition": "label_values({log_type=\"http_access\", source=\"$source\", env=~\"$env\", project=~\"$project\"}, application)",
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "sort": 1,
+        "regex": ""
+      },
+      {
+        "name": "path",
+        "label": "Chemin (regex)",
+        "type": "textbox",
+        "query": ".*",
+        "current": {
+          "text": ".*",
+          "value": ".*"
+        },
+        "options": [
+          {
+            "selected": true,
+            "text": ".*",
+            "value": ".*"
+          }
+        ]
+      },
+      {
+        "name": "search",
+        "label": "Recherche (regex)",
+        "type": "textbox",
+        "query": "",
+        "current": {
+          "text": "",
+          "value": ""
+        },
+        "options": [
+          {
+            "selected": true,
+            "text": "",
+            "value": ""
+          }
+        ]
+      }
+    ]
+  },
+  "annotations": {
+    "list": []
+  },
+  "links": [],
+  "panels": [
+    {
+      "id": 1,
+      "type": "row",
+      "title": "Vue d'ensemble",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 1
+      },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Requêtes",
+      "description": "Nombre total de requêtes HTTP sur la période (filtres appliqués).",
+      "gridPos": {
+        "x": 0,
+        "y": 1,
+        "w": 5,
+        "h": 4
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "refId": "A",
+          "expr": "(sum(count_over_time({log_type=\"http_access\", source=\"$source\", env=~\"$env\", project=~\"$project\", application=~\"$application\"} | json | RequestPath=~\"$path\" [$__range]))) or vector(0)",
+          "queryType": "instant",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "text"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "auto",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Erreurs serveur (5xx)",
+      "description": "Part des réponses 5xx sur la période.",
+      "gridPos": {
+        "x": 5,
+        "y": 1,
+        "w": 5,
+        "h": 4
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "refId": "A",
+          "expr": "(sum(count_over_time({log_type=\"http_access\", source=\"$source\", env=~\"$env\", project=~\"$project\", application=~\"$application\"} | json | RequestPath=~\"$path\" | DownstreamStatus >= 500 [$__range])) / sum(count_over_time({log_type=\"http_access\", source=\"$source\", env=~\"$env\", project=~\"$project\", application=~\"$application\"} | json | RequestPath=~\"$path\" [$__range])) * 100) or vector(0)",
+          "queryType": "instant",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "text"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          },
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "auto",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Octets reçus (upload)",
+      "description": "Corps de requête envoyés par les clients (RequestContentSize).",
+      "gridPos": {
+        "x": 10,
+        "y": 1,
+        "w": 5,
+        "h": 4
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "refId": "A",
+          "expr": "(sum(sum_over_time({log_type=\"http_access\", source=\"$source\", env=~\"$env\", project=~\"$project\", application=~\"$application\"} | json | RequestPath=~\"$path\" | unwrap RequestContentSize | __error__=\"\" [$__range]))) or vector(0)",
+          "queryType": "instant",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "text"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "auto",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Octets envoyés (download)",
+      "description": "Corps de réponse envoyés aux clients (DownstreamContentSize).",
+      "gridPos": {
+        "x": 15,
+        "y": 1,
+        "w": 5,
+        "h": 4
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "refId": "A",
+          "expr": "(sum(sum_over_time({log_type=\"http_access\", source=\"$source\", env=~\"$env\", project=~\"$project\", application=~\"$application\"} | json | RequestPath=~\"$path\" | unwrap DownstreamContentSize | __error__=\"\" [$__range]))) or vector(0)",
+          "queryType": "instant",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "text"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "auto",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "IPs clientes distinctes",
+      "description": "Adresses IP clientes différentes. Source « gateway » : IP du Traefik principal (IP réelle dans X-Forwarded-For).",
+      "gridPos": {
+        "x": 20,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "refId": "A",
+          "expr": "(count(sum by (ClientHost) (count_over_time({log_type=\"http_access\", source=\"$source\", env=~\"$env\", project=~\"$project\", application=~\"$application\"} | json | RequestPath=~\"$path\" [$__range])))) or vector(0)",
+          "queryType": "instant",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "text"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "auto",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Requêtes par environnement",
+      "description": "",
+      "gridPos": {
+        "x": 0,
+        "y": 5,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "refId": "A",
+          "expr": "sum by (env) (count_over_time({log_type=\"http_access\", source=\"$source\", env=~\"$env\", project=~\"$project\", application=~\"$application\"} | json | RequestPath=~\"$path\" [$__auto]))",
+          "queryType": "range",
+          "editorMode": "code",
+          "legendFormat": "{{env}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic-by-name"
+          },
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 2,
+            "fillOpacity": 70,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "axisBorderShow": false,
+            "axisSoftMin": 0
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Requêtes par projet",
+      "description": "",
+      "gridPos": {
+        "x": 12,
+        "y": 5,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "refId": "A",
+          "expr": "sum by (project) (count_over_time({log_type=\"http_access\", source=\"$source\", env=~\"$env\", project=~\"$project\", application=~\"$application\"} | json | RequestPath=~\"$path\" [$__auto]))",
+          "queryType": "range",
+          "editorMode": "code",
+          "legendFormat": "{{project}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic-by-name"
+          },
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 2,
+            "fillOpacity": 70,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "axisBorderShow": false,
+            "axisSoftMin": 0
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Requêtes par classe de code HTTP",
+      "description": "",
+      "gridPos": {
+        "x": 0,
+        "y": 13,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "refId": "A",
+          "expr": "sum(count_over_time({log_type=\"http_access\", source=\"$source\", env=~\"$env\", project=~\"$project\", application=~\"$application\"} | json | RequestPath=~\"$path\" | DownstreamStatus >= 200 | DownstreamStatus < 300 [$__auto]))",
+          "queryType": "range",
+          "editorMode": "code",
+          "legendFormat": "2xx"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "refId": "B",
+          "expr": "sum(count_over_time({log_type=\"http_access\", source=\"$source\", env=~\"$env\", project=~\"$project\", application=~\"$application\"} | json | RequestPath=~\"$path\" | DownstreamStatus >= 300 | DownstreamStatus < 400 [$__auto]))",
+          "queryType": "range",
+          "editorMode": "code",
+          "legendFormat": "3xx"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "refId": "C",
+          "expr": "sum(count_over_time({log_type=\"http_access\", source=\"$source\", env=~\"$env\", project=~\"$project\", application=~\"$application\"} | json | RequestPath=~\"$path\" | DownstreamStatus >= 400 | DownstreamStatus < 500 [$__auto]))",
+          "queryType": "range",
+          "editorMode": "code",
+          "legendFormat": "4xx"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "refId": "D",
+          "expr": "sum(count_over_time({log_type=\"http_access\", source=\"$source\", env=~\"$env\", project=~\"$project\", application=~\"$application\"} | json | RequestPath=~\"$path\" | DownstreamStatus >= 500 [$__auto]))",
+          "queryType": "range",
+          "editorMode": "code",
+          "legendFormat": "5xx"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic-by-name"
+          },
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 2,
+            "fillOpacity": 70,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "axisBorderShow": false,
+            "axisSoftMin": 0
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "2xx"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "3xx"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#8e8e8e"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "4xx"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "5xx"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 10,
+      "type": "bargauge",
+      "title": "Requêtes par code HTTP",
+      "description": "Détail par code exact sur la période.",
+      "gridPos": {
+        "x": 12,
+        "y": 13,
+        "w": 5,
+        "h": 8
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "refId": "A",
+          "expr": "sort_desc(sum by (DownstreamStatus) (count_over_time({log_type=\"http_access\", source=\"$source\", env=~\"$env\", project=~\"$project\", application=~\"$application\"} | json | RequestPath=~\"$path\" [$__range])))",
+          "queryType": "instant",
+          "editorMode": "code",
+          "legendFormat": "{{DownstreamStatus}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "valueMode": "text",
+        "namePlacement": "left",
+        "sizing": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Octets échangés",
+      "description": "",
+      "gridPos": {
+        "x": 17,
+        "y": 13,
+        "w": 7,
+        "h": 8
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "refId": "A",
+          "expr": "sum(sum_over_time({log_type=\"http_access\", source=\"$source\", env=~\"$env\", project=~\"$project\", application=~\"$application\"} | json | RequestPath=~\"$path\" | unwrap RequestContentSize | __error__=\"\" [$__auto]))",
+          "queryType": "range",
+          "editorMode": "code",
+          "legendFormat": "reçus (upload)"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "refId": "B",
+          "expr": "sum(sum_over_time({log_type=\"http_access\", source=\"$source\", env=~\"$env\", project=~\"$project\", application=~\"$application\"} | json | RequestPath=~\"$path\" | unwrap DownstreamContentSize | __error__=\"\" [$__auto]))",
+          "queryType": "range",
+          "editorMode": "code",
+          "legendFormat": "envoyés (download)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "color": {
+            "mode": "palette-classic-by-name"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisBorderShow": false,
+            "axisSoftMin": 0
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 12,
+      "type": "row",
+      "title": "Endpoints",
+      "gridPos": {
+        "x": 0,
+        "y": 21,
+        "w": 24,
+        "h": 1
+      },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 13,
+      "type": "table",
+      "title": "Endpoints (top 30)",
+      "description": "Par application, méthode et route (identifiants remplacés par :id) : volume, erreurs, durée p95.",
+      "gridPos": {
+        "x": 0,
+        "y": 22,
+        "w": 24,
+        "h": 11
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "refId": "A",
+          "expr": "topk(30, sum by (application, RequestMethod, endpoint) (count_over_time({log_type=\"http_access\", source=\"$source\", env=~\"$env\", project=~\"$project\", application=~\"$application\"} | json | RequestPath=~\"$path\" | label_format endpoint=`{{ regexReplaceAll \"/[0-9a-fA-F]{8}-[0-9a-fA-F-]{27}|/[0-9]+\\\\b\" .RequestPath \"/:id\" }}` [$__range])))",
+          "queryType": "instant",
+          "editorMode": "code"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "refId": "B",
+          "expr": "sum by (application, RequestMethod, endpoint) (count_over_time({log_type=\"http_access\", source=\"$source\", env=~\"$env\", project=~\"$project\", application=~\"$application\"} | json | RequestPath=~\"$path\" | label_format endpoint=`{{ regexReplaceAll \"/[0-9a-fA-F]{8}-[0-9a-fA-F-]{27}|/[0-9]+\\\\b\" .RequestPath \"/:id\" }}` | DownstreamStatus >= 400 | DownstreamStatus < 500 [$__range]))",
+          "queryType": "instant",
+          "editorMode": "code"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "refId": "C",
+          "expr": "sum by (application, RequestMethod, endpoint) (count_over_time({log_type=\"http_access\", source=\"$source\", env=~\"$env\", project=~\"$project\", application=~\"$application\"} | json | RequestPath=~\"$path\" | label_format endpoint=`{{ regexReplaceAll \"/[0-9a-fA-F]{8}-[0-9a-fA-F-]{27}|/[0-9]+\\\\b\" .RequestPath \"/:id\" }}` | DownstreamStatus >= 500 [$__range]))",
+          "queryType": "instant",
+          "editorMode": "code"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "refId": "D",
+          "expr": "quantile_over_time(0.95, {log_type=\"http_access\", source=\"$source\", env=~\"$env\", project=~\"$project\", application=~\"$application\"} | json | RequestPath=~\"$path\" | label_format endpoint=`{{ regexReplaceAll \"/[0-9a-fA-F]{8}-[0-9a-fA-F-]{27}|/[0-9]+\\\\b\" .RequestPath \"/:id\" }}` | unwrap Duration | __error__=\"\" [$__range]) by (application, RequestMethod, endpoint)",
+          "queryType": "instant",
+          "editorMode": "code"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "mode": "columns"
+          }
+        },
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "filterByValue",
+          "options": {
+            "filters": [
+              {
+                "fieldName": "Value #A",
+                "config": {
+                  "id": "isNull",
+                  "options": {}
+                }
+              }
+            ],
+            "type": "exclude",
+            "match": "any"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "application": "Application",
+              "RequestMethod": "Méthode",
+              "endpoint": "Endpoint",
+              "Value #A": "Requêtes",
+              "Value #B": "4xx",
+              "Value #C": "5xx",
+              "Value #D": "Durée p95"
+            },
+            "indexByName": {
+              "application": 0,
+              "RequestMethod": 1,
+              "endpoint": 2,
+              "Value #A": 3,
+              "Value #B": 4,
+              "Value #C": 5,
+              "Value #D": 6
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "sort": [
+              {
+                "field": "Requêtes",
+                "desc": true
+              }
+            ]
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "filterable": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Durée p95"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "ns"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 14,
+      "type": "timeseries",
+      "title": "Durée p95 par endpoint (top 10)",
+      "description": "",
+      "gridPos": {
+        "x": 0,
+        "y": 33,
+        "w": 12,
+        "h": 9
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "refId": "A",
+          "expr": "topk(10, quantile_over_time(0.95, {log_type=\"http_access\", source=\"$source\", env=~\"$env\", project=~\"$project\", application=~\"$application\"} | json | RequestPath=~\"$path\" | label_format endpoint=`{{ regexReplaceAll \"/[0-9a-fA-F]{8}-[0-9a-fA-F-]{27}|/[0-9]+\\\\b\" .RequestPath \"/:id\" }}` | unwrap Duration | __error__=\"\" [$__auto]) by (application, RequestMethod, endpoint))",
+          "queryType": "range",
+          "editorMode": "code",
+          "legendFormat": "{{application}} {{RequestMethod}} {{endpoint}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ns",
+          "color": {
+            "mode": "palette-classic-by-name"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisBorderShow": false,
+            "axisSoftMin": 0
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 15,
+      "type": "timeseries",
+      "title": "Erreurs 5xx par endpoint",
+      "description": "",
+      "gridPos": {
+        "x": 12,
+        "y": 33,
+        "w": 12,
+        "h": 9
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "refId": "A",
+          "expr": "sum by (application, RequestMethod, endpoint) (count_over_time({log_type=\"http_access\", source=\"$source\", env=~\"$env\", project=~\"$project\", application=~\"$application\"} | json | RequestPath=~\"$path\" | label_format endpoint=`{{ regexReplaceAll \"/[0-9a-fA-F]{8}-[0-9a-fA-F-]{27}|/[0-9]+\\\\b\" .RequestPath \"/:id\" }}` | DownstreamStatus >= 500 [$__auto]))",
+          "queryType": "range",
+          "editorMode": "code",
+          "legendFormat": "{{application}} {{RequestMethod}} {{endpoint}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic-by-name"
+          },
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 2,
+            "fillOpacity": 70,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "axisBorderShow": false,
+            "axisSoftMin": 0
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 16,
+      "type": "row",
+      "title": "Clients",
+      "gridPos": {
+        "x": 0,
+        "y": 42,
+        "w": 24,
+        "h": 1
+      },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 17,
+      "type": "table",
+      "title": "IPs clientes (top 20)",
+      "description": "Les 20 IPs les plus actives : requêtes, octets échangés, erreurs.",
+      "gridPos": {
+        "x": 0,
+        "y": 43,
+        "w": 14,
+        "h": 10
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "refId": "A",
+          "expr": "topk(20, sum by (ClientHost) (count_over_time({log_type=\"http_access\", source=\"$source\", env=~\"$env\", project=~\"$project\", application=~\"$application\"} | json | RequestPath=~\"$path\" [$__range])))",
+          "queryType": "instant",
+          "editorMode": "code"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "refId": "B",
+          "expr": "sum by (ClientHost) (sum_over_time({log_type=\"http_access\", source=\"$source\", env=~\"$env\", project=~\"$project\", application=~\"$application\"} | json | RequestPath=~\"$path\" | unwrap RequestContentSize | __error__=\"\" [$__range]))",
+          "queryType": "instant",
+          "editorMode": "code"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "refId": "C",
+          "expr": "sum by (ClientHost) (sum_over_time({log_type=\"http_access\", source=\"$source\", env=~\"$env\", project=~\"$project\", application=~\"$application\"} | json | RequestPath=~\"$path\" | unwrap DownstreamContentSize | __error__=\"\" [$__range]))",
+          "queryType": "instant",
+          "editorMode": "code"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "refId": "D",
+          "expr": "sum by (ClientHost) (count_over_time({log_type=\"http_access\", source=\"$source\", env=~\"$env\", project=~\"$project\", application=~\"$application\"} | json | RequestPath=~\"$path\" | DownstreamStatus >= 400 [$__range]))",
+          "queryType": "instant",
+          "editorMode": "code"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "mode": "columns"
+          }
+        },
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "filterByValue",
+          "options": {
+            "filters": [
+              {
+                "fieldName": "Value #A",
+                "config": {
+                  "id": "isNull",
+                  "options": {}
+                }
+              }
+            ],
+            "type": "exclude",
+            "match": "any"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "ClientHost": "IP cliente",
+              "Value #A": "Requêtes",
+              "Value #B": "Octets reçus",
+              "Value #C": "Octets envoyés",
+              "Value #D": "Erreurs (4xx/5xx)"
+            },
+            "indexByName": {
+              "ClientHost": 0,
+              "Value #A": 1,
+              "Value #B": 2,
+              "Value #C": 3,
+              "Value #D": 4
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "sort": [
+              {
+                "field": "Requêtes",
+                "desc": true
+              }
+            ]
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "filterable": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "Octets.*"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "bytes"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 18,
+      "type": "bargauge",
+      "title": "Requêtes par application",
+      "description": "",
+      "gridPos": {
+        "x": 14,
+        "y": 43,
+        "w": 10,
+        "h": 10
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "refId": "A",
+          "expr": "topk(15, sum by (project, application) (count_over_time({log_type=\"http_access\", source=\"$source\", env=~\"$env\", project=~\"$project\", application=~\"$application\"} | json | RequestPath=~\"$path\" [$__range])))",
+          "queryType": "instant",
+          "editorMode": "code",
+          "legendFormat": "{{project}} / {{application}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "valueMode": "text",
+        "namePlacement": "left",
+        "sizing": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 19,
+      "type": "row",
+      "title": "Middlewares Traefik",
+      "gridPos": {
+        "x": 0,
+        "y": 53,
+        "w": 24,
+        "h": 1
+      },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 20,
+      "type": "table",
+      "title": "Réponses produites par un middleware (sans appel au backend)",
+      "description": "OriginStatus = 0 : la réponse ne vient pas du backend (redirection HTTPS 308, limitation de débit 429, authentification 401/403, CORS preflight 204...). Traefik ne logue pas le nom du middleware dans les logs d'accès : le routeur indique la chaîne de middlewares en cause.",
+      "gridPos": {
+        "x": 0,
+        "y": 54,
+        "w": 12,
+        "h": 9
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "refId": "A",
+          "expr": "sum by (source, RouterName, DownstreamStatus) (count_over_time({log_type=\"http_access\", source=~\"ingress|gateway\", env=~\"$env\", project=~\"$project\"} | json | OriginStatus = 0 | RouterName != \"\" [$__range]))",
+          "queryType": "instant",
+          "editorMode": "code"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "mode": "columns"
+          }
+        },
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "source": "Traefik",
+              "RouterName": "Routeur",
+              "DownstreamStatus": "Code",
+              "Value #A": "Requêtes"
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "sort": [
+              {
+                "field": "Requêtes",
+                "desc": true
+              }
+            ]
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "filterable": true
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 21,
+      "type": "timeseries",
+      "title": "Réponses de middleware par code",
+      "description": "",
+      "gridPos": {
+        "x": 12,
+        "y": 54,
+        "w": 12,
+        "h": 9
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "refId": "A",
+          "expr": "sum by (DownstreamStatus) (count_over_time({log_type=\"http_access\", source=~\"ingress|gateway\", env=~\"$env\", project=~\"$project\"} | json | OriginStatus = 0 | RouterName != \"\" [$__auto]))",
+          "queryType": "range",
+          "editorMode": "code",
+          "legendFormat": "{{DownstreamStatus}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic-by-name"
+          },
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 2,
+            "fillOpacity": 70,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "axisBorderShow": false,
+            "axisSoftMin": 0
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 22,
+      "type": "bargauge",
+      "title": "Erreurs Traefik par middleware",
+      "description": "Logs propres de Traefik (warn et au-delà) qui nomment un middleware (forwardAuth injoignable, middleware absent...).",
+      "gridPos": {
+        "x": 0,
+        "y": 63,
+        "w": 8,
+        "h": 9
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "refId": "A",
+          "expr": "topk(15, sum by (source, middlewareName) (count_over_time({log_type=\"traefik\", source=~\"ingress|gateway\"} | json | middlewareName != \"\" [$__range])))",
+          "queryType": "instant",
+          "editorMode": "code",
+          "legendFormat": "{{source}} / {{middlewareName}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "valueMode": "text",
+        "namePlacement": "left",
+        "sizing": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 23,
+      "type": "logs",
+      "title": "Logs Traefik (warn et au-delà)",
+      "description": "",
+      "gridPos": {
+        "x": 8,
+        "y": 63,
+        "w": 16,
+        "h": 9
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "refId": "A",
+          "expr": "{log_type=\"traefik\", source=~\"ingress|gateway\"} |~ \"(?i)$search\"",
+          "queryType": "range",
+          "editorMode": "code"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "sortOrder": "Descending",
+        "enableLogDetails": true,
+        "dedupStrategy": "none",
+        "prettifyLogMessage": false
+      }
+    },
+    {
+      "id": 24,
+      "type": "row",
+      "title": "Logs d'accès",
+      "gridPos": {
+        "x": 0,
+        "y": 72,
+        "w": 24,
+        "h": 1
+      },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 25,
+      "type": "logs",
+      "title": "Logs d'accès",
+      "description": "",
+      "gridPos": {
+        "x": 0,
+        "y": 73,
+        "w": 24,
+        "h": 12
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "refId": "A",
+          "expr": "{log_type=\"http_access\", source=\"$source\", env=~\"$env\", project=~\"$project\", application=~\"$application\"} | json | RequestPath=~\"$path\" |~ \"(?i)$search\" | line_format `{{.DownstreamStatus}} {{.RequestMethod}} {{.RequestHost}}{{.RequestPath}} {{.ClientHost}} {{.Duration}}ns routeur={{.RouterName}}`",
+          "queryType": "range",
+          "editorMode": "code"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "sortOrder": "Descending",
+        "enableLogDetails": true,
+        "dedupStrategy": "none",
+        "prettifyLogMessage": false
+      }
+    }
+  ]
+}
