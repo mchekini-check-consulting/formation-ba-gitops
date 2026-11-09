@@ -1,0 +1,31 @@
+{{- range $app := .Values.applications }}
+{{- if include "gba.deployed" (dict "app" $app "env" $.Values.env) }}
+{{- $ctx := dict "app" $app "root" $ }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $app.name }}
+  labels:
+    {{- include "gba.labels" $ctx | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "gba.selectorLabels" $ctx | nindent 4 }}
+  ports:
+    {{- if eq $app.type "mailpit" }}
+    # Port smtp fixe (1025) : les autres composants du projet envoient leurs
+    # e-mails à "{{ $app.name }}:1025" (SMTP_HOST/SMTP_PORT de leur helm.yaml)
+    - name: smtp
+      port: 1025
+      targetPort: smtp
+    - name: http
+      port: 8025
+      targetPort: http
+    {{- else }}
+    - name: http
+      port: {{ ($app.service).port | default 80 }}
+      targetPort: http
+    {{- end }}
+{{- end }}
+{{- end }}

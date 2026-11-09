@@ -6,3 +6,5 @@ dashboards:
     enabled: true
   infra:
     enabled: true
+  platform-metrics:
+    enabled: true
