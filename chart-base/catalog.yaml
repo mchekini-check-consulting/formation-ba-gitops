@@ -40,11 +40,6 @@ tools:
     repo: https://charts.jetstack.io
     chart: cert-manager
 
-  # Détection d'anomalies runtime (syscalls), sortie en stdout -> récupérée par Alloy
-  falco:
-    repo: https://falcosecurity.github.io/charts
-    chart: falco
-
   # Logs : stockage (Loki, objets sur S3), collecte (Alloy, DaemonSet), visualisation
   # (Grafana, SSO Keycloak). Loki et Grafana : dépôt grafana-community (le chart
   # grafana/grafana est figé, grafana/loki vise Grafana Enterprise Logs).
