@@ -66,6 +66,15 @@ tools:
     version: ""
     namespace: cert-manager
     syncWave: "5"
+  # Métriques : Prometheus Operator + Prometheus (ServiceMonitor/PodMonitor/PrometheusRule).
+  # Alertmanager et Grafana du chart désactivés (values/common/kube-prometheus-stack.yaml) :
+  # pas d'Alertmanager pour l'instant, Grafana déjà déployé (SSO Keycloak). Wave 0 :
+  # aucune dépendance (pas de base, pas de SSO).
+  kube-prometheus-stack:
+    enabled: true
+    version: ""
+    namespace: monitoring
+    syncWave: "0"
   # Opérateur PostgreSQL de la plateforme : bases des outils (sonarqube-db) et
   # des applications dev. Wave 0 : opérateur + webhook prêts avant les Cluster.
   cloudnative-pg:

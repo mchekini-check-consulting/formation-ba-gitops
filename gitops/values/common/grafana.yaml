@@ -3,7 +3,8 @@
 #     PKCE), formulaire de connexion désactivé ; rôle Grafana = rôle du client
 #     (matrice d'accès values/common/access.yaml), sans rôle : accès refusé
 #   - base : Cluster CloudNativePG grafana-db (Application grafana-db, wave 20)
-#   - datasource (fichier des values, non modifiable dans l'interface) : Loki
+#   - datasources (fichier des values, non modifiables dans l'interface) : Loki, Prometheus
+#     (kube-prometheus-stack, namespace monitoring)
 #   - dashboards : aucun livré par le chart ; uniquement ceux du chart maison
 #     grafana-dashboards (ConfigMaps label grafana_dashboard, sidecar), tous
 #     désactivés par défaut et activés par environnement
@@ -105,6 +106,12 @@ datasources:
         jsonData:
           maxLines: 1000
           timeout: 120
+      - name: Prometheus
+        uid: prometheus
+        type: prometheus
+        access: proxy
+        url: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090
+        editable: false
 
 # Dashboards : rien de livré par le chart, seulement les ConfigMaps du chart
 # grafana-dashboards (même namespace), un dossier par annotation grafana_folder,

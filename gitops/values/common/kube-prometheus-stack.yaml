@@ -1,0 +1,68 @@
+# Values communes du chart kube-prometheus-stack : Prometheus Operator + Prometheus.
+#   - Pas d'Alertmanager ni de Grafana pour l'instant : Grafana est déjà déployé
+#     (SSO Keycloak, chart grafana) ; Alertmanager viendra dans un second temps.
+#   - Pas de kube-state-metrics ni de node-exporter : rien n'en a besoin tant que
+#     le scrape se limite aux ServiceMonitor/PodMonitor des outils (métriques
+#     applicatives), stack la plus légère possible.
+#   - kubeControllerManager/kubeScheduler/kubeEtcd/kubeProxy désactivés : control
+#     plane managé par AWS sur EKS, ces endpoints ne sont pas accessibles (cibles
+#     systématiquement down sinon). kubeApiServer/kubelet/coreDns restent actifs :
+#     Services déjà exposés dans le cluster, aucun pod supplémentaire.
+#   - CRDs : crd-base/kube-prometheus-stack/<version> (skipCrds, comme les autres outils).
+crds:
+  enabled: false
+
+alertmanager:
+  enabled: false
+
+grafana:
+  enabled: false
+
+kubeStateMetrics:
+  enabled: false
+
+nodeExporter:
+  enabled: false
+
+kubeControllerManager:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeEtcd:
+  enabled: false
+kubeProxy:
+  enabled: false
+
+prometheusOperator:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 256Mi
+
+prometheus:
+  prometheusSpec:
+    # Sélecteurs ouverts à tout le cluster : les ServiceMonitor/PodMonitor/PrometheusRule
+    # créés par les Applications des autres outils ne portent pas le label de release
+    # de cette Application (nécessaire sinon Prometheus n'en découvre aucun).
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    probeSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+    scrapeConfigSelectorNilUsesHelmValues: false
+
+    retention: 10d
+    resources:
+      requests:
+        cpu: 100m
+        memory: 512Mi
+      limits:
+        memory: 1Gi
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 10Gi

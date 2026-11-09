@@ -31,6 +31,12 @@ tools:
     chart: cert-manager
     set: crds.enabled=true   # les CRDs du chart cert-manager sont des templates
 
+  # CRDs du Prometheus Operator (ServiceMonitor, PodMonitor, PrometheusRule, Prometheus...)
+  # crds.enabled: true par défaut dans le chart, pas de --set nécessaire.
+  kube-prometheus-stack:
+    repo: https://prometheus-community.github.io/helm-charts
+    chart: kube-prometheus-stack
+
   # Promotion des images (Kargo), chart OCI
   kargo:
     repo: oci://ghcr.io/akuity/kargo-charts

@@ -35,6 +35,8 @@ tools:
     version: 1.23.0
   cert-manager:
     version: v1.21.2
+  kube-prometheus-stack:
+    version: 93.1.0   # kube-prometheus-stack, Prometheus Operator v0.95.1
   cloudnative-pg:
     version: 0.29.1
   plugin-barman-cloud:
