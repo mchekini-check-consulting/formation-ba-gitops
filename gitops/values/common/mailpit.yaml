@@ -1,0 +1,20 @@
+# Mailpit (chart maison chart-base/mailpit), partie serveur : Application mailpit.
+# SMTP des projets (dev, qualif) : mailpit.mailpit.svc.cluster.local:1025
+# UI : https://mailpit.<env>.check-consulting.net (Application mailpit-auth, SSO Keycloak)
+mailpit:
+  enabled: true
+  env:
+    # Login SMTP non vérifié : chaque projet envoie avec SMTP_USER=<env>-<projet>
+    # sans compte à créer ici
+    MP_SMTP_AUTH_ACCEPT_ANY: "true"
+    # Login sans TLS accepté (trafic interne au cluster)
+    MP_SMTP_AUTH_ALLOW_INSECURE: "true"
+    # Login SMTP ajouté comme tag : filtre par projet/env dans l'UI (tag:<env>-<projet>)
+    MP_TAGS_USERNAME: "true"
+    # Au-delà, les plus anciens sont supprimés : le PVC ne se remplit pas
+    MP_MAX_MESSAGES: "2000"
+    # Pas d'appel à GitHub pour vérifier la version
+    MP_DISABLE_VERSION_CHECK: "true"
+  persistence:
+    size: 1Gi
+    keep: true

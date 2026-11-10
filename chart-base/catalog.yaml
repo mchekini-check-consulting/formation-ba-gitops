@@ -35,6 +35,9 @@ tools:
   # cloudbeaver : chart maison écrit directement dans chart-base/cloudbeaver/<version>
   # (pas de chart Helm publié pour CloudBeaver CE) ; nouvelle version = nouveau dossier.
 
+  # mailpit : chart maison écrit directement dans chart-base/mailpit/<version>
+  # (Mailpit + oauth2-proxy devant l'UI, deux Applications) ; nouvelle version = nouveau dossier.
+
   # Certificats TLS (Let's Encrypt, DNS-01 Route53)
   cert-manager:
     repo: https://charts.jetstack.io

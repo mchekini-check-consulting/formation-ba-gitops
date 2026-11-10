@@ -1,0 +1,123 @@
+{{- /* oauth2-proxy devant l'UI Mailpit : connexion Keycloak (realm platform,
+       client OIDC confidentiel + PKCE), accès limité aux rôles allowedRoles du
+       claim des rôles du client (matrice d'accès). Seul chemin vers l'UI depuis
+       l'extérieur : l'Ingress cible oauth2-proxy, jamais Mailpit. */}}
+{{- if .Values.oauth2Proxy.enabled }}
+{{- $ctx := dict "root" $ "component" "mailpit-oauth2-proxy" }}
+{{- $o := .Values.oauth2Proxy }}
+{{- $host := required "oauth2Proxy.ingress.host requis" $o.ingress.host }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mailpit-oauth2-proxy
+  labels:
+    {{- include "mailpit.labels" $ctx | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "mailpit.selectorLabels" $ctx | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "mailpit.labels" $ctx | nindent 8 }}
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532        # utilisateur nonroot de l'image distroless
+        runAsGroup: 65532
+      containers:
+        - name: oauth2-proxy
+          image: "{{ $o.image.repository }}:{{ $o.image.tag }}"
+          imagePullPolicy: {{ $o.image.pullPolicy }}
+          args:
+            - --http-address=0.0.0.0:4180
+            - --reverse-proxy=true                # derrière Traefik (X-Forwarded-*)
+            - --upstream={{ $o.upstream }}
+            - --provider=oidc
+            - --oidc-issuer-url={{ required "oauth2Proxy.oidc.issuerUrl requis" $o.oidc.issuerUrl }}
+            - --client-id={{ $o.oidc.clientId }}
+            - --code-challenge-method=S256        # PKCE (attribut du client Keycloak)
+            - --redirect-url=https://{{ $host }}/oauth2/callback
+            - --scope=openid profile email
+            # Rôles du client dans le claim plat (mapper client-roles) : lus comme
+            # des groupes, filtrés par allowed-group
+            - --oidc-groups-claim={{ $o.oidc.rolesClaim }}
+            {{- range required "oauth2Proxy.oidc.allowedRoles requis" $o.oidc.allowedRoles }}
+            - --allowed-group={{ . }}
+            {{- end }}
+            - --email-domain=*
+            # Comptes créés par keycloak-config : e-mail pas forcément vérifié
+            - --insecure-oidc-allow-unverified-email=true
+            - --skip-provider-button=true         # redirection directe vers Keycloak
+            - --cookie-name=_mailpit_oauth2
+            - --cookie-secure=true
+          env:
+            - name: OAUTH2_PROXY_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $o.oidc.clientSecret.name }}
+                  key: {{ $o.oidc.clientSecret.key }}
+            - name: OAUTH2_PROXY_COOKIE_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $o.cookieSecret.name }}
+                  key: {{ $o.cookieSecret.key }}
+          ports:
+            - name: http
+              containerPort: 4180
+          readinessProbe:
+            httpGet:
+              path: /ping
+              port: http
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /ping
+              port: http
+            periodSeconds: 20
+            failureThreshold: 3
+          resources:
+            {{- toYaml $o.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mailpit-oauth2-proxy
+  labels:
+    {{- include "mailpit.labels" $ctx | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "mailpit.selectorLabels" $ctx | nindent 4 }}
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mailpit
+  labels:
+    {{- include "mailpit.labels" $ctx | nindent 4 }}
+  {{- with $o.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with $o.ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  rules:
+    - host: {{ $host }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: mailpit-oauth2-proxy
+                port:
+                  name: http
+{{- end }}

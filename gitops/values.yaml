@@ -236,6 +236,28 @@ tools:
     namespace: logging
     syncWave: "45"
     crds: false
+  # Serveur SMTP de test central (chart maison chart-base/mailpit) : capture les
+  # e-mails de tous les projets (dev, qualif), rien n'est envoyé vers l'extérieur.
+  # SMTP : mailpit.mailpit.svc.cluster.local:1025, tag = login SMTP (<env>-<projet>).
+  # Deux Applications du même chart :
+  #   mailpit      wave 30 : serveur + PVC des e-mails ; crée le namespace mailpit
+  #                avant keycloak-config (35), qui y copie le secret du client mailpit
+  #   mailpit-auth wave 40 : oauth2-proxy (SSO Keycloak) + Ingress, seul accès à l'UI
+  # finalizer: false : supprimer l'Application ne supprime pas les e-mails (PVC).
+  mailpit:
+    enabled: true
+    version: ""
+    namespace: mailpit
+    syncWave: "30"
+    crds: false
+    finalizer: false
+  mailpit-auth:
+    enabled: true
+    version: ""
+    chart: mailpit
+    namespace: mailpit
+    syncWave: "40"
+    crds: false
 
 # Projets métier : SEUL endroit où déclarer les environnements et les projets.
 # Un commit suffit. En découlent (templates/business/, après les outils) :
@@ -247,7 +269,7 @@ business:
   enabled: true
   # Charts maison de chart-base (même dépôt que chartBase de cluster.yaml)
   charts:
-    app: charts-ba-formations/0.9.5     # chart applicatif des projets (dont type: gateway, logs d'accès JSON, IP client réelle, composant sans tag ignoré, plugins Traefik du gateway, envFrom Secret, type: mailpit)
+    app: charts-ba-formations/0.9.6     # chart applicatif des projets (dont type: gateway, logs d'accès JSON, IP client réelle, composant sans tag ignoré, plugins Traefik du gateway, envFrom Secret ; e-mails de test : Mailpit central tools.mailpit)
     pipelines: kargo-pipelines/0.4.1    # Project, Warehouse, Stages Kargo (1 Application/projet)
 
   # Dépôts métier : <github>/<projet>.git, branche lue par ArgoCD et écrite par Kargo

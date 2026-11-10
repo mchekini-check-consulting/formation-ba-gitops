@@ -71,6 +71,14 @@ access:
         editor: {}
         viewer: {}
 
+    # Mailpit (e-mails de test de tous les projets). oauth2-proxy laisse passer
+    # les rôles de oauth2Proxy.oidc.allowedRoles (values/common/mailpit-auth.yaml) :
+    #   viewer -> accès à l'UI (lecture, suppression des e-mails : Mailpit n'a pas de droits plus fins)
+    # Sans ce rôle : 403.
+    mailpit:
+      roles:
+        viewer: {}
+
   # Groupes Keycloak : rôles par outil. mfa: true : code OTP exigé à chaque connexion
   # (configuration de l'application d'authentification imposée à la première).
   groups:
@@ -81,15 +89,18 @@ access:
         argocd: [admin]
         sonarqube: [admin]
         grafana: [admin]
+        mailpit: [viewer]
     ba:
       roles:
         kargo: [promoter]
         argocd: [readonly]
         sonarqube: [user]
         grafana: [viewer]
+        mailpit: [viewer]
     dev-team:
       roles:
         kargo: [viewer]
         argocd: [readonly]
         sonarqube: [user]
         grafana: [viewer]
+        mailpit: [viewer]

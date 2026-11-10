@@ -49,6 +49,19 @@ realms:
         clientSecretCopy:
           namespace: logging
           name: grafana-oauth
+      # Mailpit : oauth2-proxy devant l'UI (Application mailpit-auth). Client
+      # confidentiel (oauth2-proxy exige un client_secret), PKCE en plus. Secret copié
+      # en mailpit/mailpit-oauth (namespace créé par l'Application mailpit, wave 30).
+      # Rôles dans le claim "roles", filtrés par oauth2-proxy (allowedRoles).
+      mailpit:
+        name: Mailpit
+        host: mailpit
+        redirectPaths: [/oauth2/callback]
+        attributes:
+          pkce.code.challenge.method: S256
+        clientSecretCopy:
+          namespace: mailpit
+          name: mailpit-oauth
       # SonarQube Community : SAML (values/*/sonarqube.yaml). clientId = "Application ID"
       # côté SonarQube. Assertion : login, name, email, groups (rôles renommés en groupes
       # SonarQube : access.tools.sonarqube.roles.<rôle>.group).

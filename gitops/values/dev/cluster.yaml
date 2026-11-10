@@ -74,3 +74,7 @@ tools:
     version: 14.0.1    # Grafana 13.2.4
   grafana-dashboards:
     version: 0.1.6     # chart maison chart-base/grafana-dashboards
+  mailpit:
+    version: 0.1.0     # chart maison chart-base/mailpit (Mailpit v1.32.0)
+  mailpit-auth:
+    version: 0.1.0     # chart mailpit (oauth2-proxy v7.15.5)

@@ -21,6 +21,7 @@ dépôt Helm en ligne.
 | [sonarqube-config](sonarqube-config/README.md) | groupes et permissions SonarQube | Application `sonarqube-config` |
 | [cloudbeaver](cloudbeaver/README.md) | CloudBeaver (pas de chart officiel) | Application `cloudbeaver` |
 | [grafana-dashboards](grafana-dashboards/README.md) | dashboards de logs (HTTP, métier, infra), désactivés par défaut | Application `grafana-dashboards` |
+| [mailpit](mailpit/README.md) | serveur SMTP de test central (Mailpit) + oauth2-proxy (SSO Keycloak) devant l'UI | Applications `mailpit` et `mailpit-auth` |
 
 ## Règles
 
