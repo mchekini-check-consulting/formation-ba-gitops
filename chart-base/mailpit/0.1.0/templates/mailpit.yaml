@@ -1,0 +1,111 @@
+{{- /* Mailpit : SMTP (1025) pour les projets, UI/API (8025) joignable seulement
+       dans le cluster (l'accès externe passe par oauth2-proxy, oauth2-proxy.yaml).
+       E-mails dans une base SQLite sur PVC : conservés au redémarrage. */}}
+{{- if .Values.mailpit.enabled }}
+{{- $ctx := dict "root" $ "component" "mailpit" }}
+{{- $m := .Values.mailpit }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mailpit-data
+  labels:
+    {{- include "mailpit.labels" $ctx | nindent 4 }}
+  {{- if $m.persistence.keep }}
+  annotations:
+    helm.sh/resource-policy: keep                               # helm uninstall
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false   # ArgoCD (ignore l'annotation Helm)
+  {{- end }}
+spec:
+  accessModes: [ReadWriteOnce]
+  {{- with $m.persistence.storageClass }}
+  storageClassName: {{ . }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ $m.persistence.size }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mailpit
+  labels:
+    {{- include "mailpit.labels" $ctx | nindent 4 }}
+spec:
+  replicas: 1                 # base SQLite sur volume ReadWriteOnce : une seule instance
+  strategy:
+    type: Recreate            # l'ancien pod libère le volume avant le nouveau
+  selector:
+    matchLabels:
+      {{- include "mailpit.selectorLabels" $ctx | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "mailpit.labels" $ctx | nindent 8 }}
+    spec:
+      # Image sans utilisateur dédié : UID non root, volume accessible via fsGroup
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        runAsNonRoot: true
+      containers:
+        - name: mailpit
+          image: "{{ $m.image.repository }}:{{ $m.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ $m.image.pullPolicy }}
+          ports:
+            - name: smtp
+              containerPort: 1025
+            - name: http
+              containerPort: 8025
+          env:
+            - name: MP_DATABASE
+              value: /data/mailpit.db
+            - name: MP_SMTP_BIND_ADDR
+              value: "0.0.0.0:1025"
+            - name: MP_UI_BIND_ADDR
+              value: "0.0.0.0:8025"
+            {{- range $k, $v := $m.env }}
+            - name: {{ $k }}
+              value: {{ $v | quote }}
+            {{- end }}
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /livez
+              port: http
+            periodSeconds: 20
+            failureThreshold: 3
+          resources:
+            {{- toYaml $m.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: mailpit-data
+---
+# SMTP des projets : mailpit.<namespace>.svc.cluster.local:1025
+# UI/API : port 8025, cible d'oauth2-proxy (et des tests e2e dans le cluster)
+apiVersion: v1
+kind: Service
+metadata:
+  name: mailpit
+  labels:
+    {{- include "mailpit.labels" $ctx | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "mailpit.selectorLabels" $ctx | nindent 4 }}
+  ports:
+    - name: smtp
+      port: 1025
+      targetPort: smtp
+    - name: http
+      port: 8025
+      targetPort: http
+{{- end }}

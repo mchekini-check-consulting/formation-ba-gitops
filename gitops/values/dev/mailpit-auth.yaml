@@ -1,0 +1,7 @@
+# Ingress servi par Traefik ; external-dns crée l'ALIAS mailpit.dev.check-consulting.net -> NLB.
+# HTTPS : wildcard *.dev.check-consulting.net, certificat par défaut de Traefik (cert-manager).
+oauth2Proxy:
+  oidc:
+    issuerUrl: https://keycloak.dev.check-consulting.net/realms/platform
+  ingress:
+    host: mailpit.dev.check-consulting.net

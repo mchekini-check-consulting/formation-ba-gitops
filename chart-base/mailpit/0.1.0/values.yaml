@@ -1,0 +1,64 @@
+# Deux parties, activées par deux Applications distinctes (gitops/values.yaml) :
+#   tools.mailpit      (wave 30) : mailpit.enabled     -> crée le namespace avant
+#                                  keycloak-config (35), qui y copie le secret du client
+#   tools.mailpit-auth (wave 40) : oauth2Proxy.enabled -> lit ce secret
+# Les deux sont désactivées par défaut : chaque fichier de values en active une.
+
+mailpit:
+  enabled: false
+  image:
+    repository: axllent/mailpit
+    tag: ""                         # défaut : appVersion du chart
+    pullPolicy: IfNotPresent
+  # Variables MP_* (https://mailpit.axl.dev/docs/configuration/runtime-options/).
+  # MP_DATABASE, MP_SMTP_BIND_ADDR et MP_UI_BIND_ADDR sont posées par le chart.
+  env: {}
+  # E-mails (base SQLite) : conservés au redémarrage du pod
+  persistence:
+    size: 1Gi
+    storageClass: ""                # vide : StorageClass par défaut du cluster (gp3)
+    keep: true                      # PVC conservé si l'Application est supprimée
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      memory: 256Mi
+
+oauth2Proxy:
+  enabled: false
+  image:
+    repository: quay.io/oauth2-proxy/oauth2-proxy
+    tag: v7.15.5
+    pullPolicy: IfNotPresent
+  # Interface Mailpit (Service de la partie mailpit), jamais exposée directement
+  upstream: http://mailpit:8025
+  oidc:
+    issuerUrl: ""                   # https://keycloak.<env>.<domaine>/realms/platform
+    clientId: mailpit
+    # Secret du client, copié depuis keycloak par keycloak-config (clientSecretCopy)
+    clientSecret:
+      name: mailpit-oauth
+      key: client-secret
+    # Claim des rôles du client (mapper client-roles de keycloak-config)
+    rolesClaim: roles
+    # Rôles autorisés (access.tools.mailpit.roles) ; sans l'un d'eux : 403
+    allowedRoles: [viewer]
+  # Secret de chiffrement du cookie de session (32 caractères). Job PreSync qui le crée
+  # s'il n'existe pas (un Secret existant n'est jamais modifié), jamais dans Git.
+  cookieSecret:
+    name: mailpit-oauth2-cookie
+    key: cookie-secret
+    generate:
+      enabled: true
+      image: alpine/k8s:1.31.13     # kubectl + sh, multi-arch (amd64, arm64)
+  ingress:
+    className: ""
+    host: ""
+    annotations: {}
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      memory: 128Mi

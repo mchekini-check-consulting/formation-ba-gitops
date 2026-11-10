@@ -1,0 +1,12 @@
+apiVersion: v2
+name: mailpit
+description: >-
+  Serveur SMTP de test central (Mailpit) : capture les e-mails envoyés par les
+  projets (dev, qualif), n'envoie rien vers l'extérieur. Interface protégée par
+  oauth2-proxy (SSO Keycloak, realm platform). Chart maison, deux parties
+  activables séparément (deux Applications, waves différentes) :
+    mailpit.enabled     Mailpit (SMTP + UI interne), PVC des e-mails
+    oauth2Proxy.enabled oauth2-proxy + Ingress (seul accès à l'UI depuis l'extérieur)
+type: application
+version: 0.1.0
+appVersion: "v1.32.0"

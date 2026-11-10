@@ -1,0 +1,5 @@
+# Mailpit dev : aucune valeur propre à l'environnement (fichier exigé par
+# ignoreMissingValueFiles: false, templates/platform/applications.yaml)
+mailpit:
+  env:
+    MP_LABEL: dev                   # affiché dans l'interface

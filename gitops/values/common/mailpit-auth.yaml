@@ -1,0 +1,16 @@
+# Mailpit (chart maison chart-base/mailpit), partie accès : Application mailpit-auth.
+# oauth2-proxy devant l'UI : client mailpit du realm platform (values/common/keycloak-config.yaml),
+# secret copié en mailpit/mailpit-oauth par keycloak-config (clientSecretCopy).
+# Droits : access.tools.mailpit.roles (values/common/access.yaml).
+oauth2Proxy:
+  enabled: true
+  upstream: http://mailpit:8025
+  oidc:
+    clientId: mailpit
+    clientSecret:
+      name: mailpit-oauth
+      key: client-secret
+    rolesClaim: roles
+    allowedRoles: [viewer]
+  ingress:
+    className: traefik
