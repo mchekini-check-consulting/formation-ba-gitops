@@ -1,0 +1,12 @@
+apiVersion: v2
+name: airflow
+description: >-
+  Apache Airflow en mode standalone (webserver + scheduler + triggerer dans
+  un seul conteneur, base SQLite). Chart maison, volontairement minimal :
+  pensee pour decouvrir l'UI / ecrire des DAGs de test, pas pour de la
+  production (pas de tolerance de panne, SQLite mono-ecrivain). Pour un
+  usage de production, utiliser le chart officiel apache-airflow/airflow
+  avec KubernetesExecutor + Postgres dedie.
+type: application
+version: 0.1.0
+appVersion: "2.10.5"

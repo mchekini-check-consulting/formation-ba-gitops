@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "airflow.fullname" . }}
+  labels:
+    {{- include "airflow.labels" . | nindent 4 }}
+spec:
+  replicas: 1                 # standalone + SQLite : une seule instance
+  strategy:
+    type: Recreate            # l'ancien pod libere le volume avant le nouveau
+  selector:
+    matchLabels:
+      {{- include "airflow.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "airflow.selectorLabels" . | nindent 8 }}
+    spec:
+      # uid 50000 = utilisateur "airflow" de l'image officielle
+      securityContext:
+        runAsUser: 50000
+        fsGroup: 0
+      containers:
+        - name: airflow
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["airflow", "standalone"]
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            {{- with .Values.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          # Demarrage lent (init DB SQLite + creation de l'utilisateur admin)
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+            failureThreshold: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 20
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /opt/airflow
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "airflow.fullname" . }}-data
