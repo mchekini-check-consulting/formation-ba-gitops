@@ -1,0 +1,4 @@
+# Ingress servi par Traefik ; external-dns cree l'alias -> NLB.
+# HTTPS : wildcard *.dev.check-consulting.net, certificat par defaut de Traefik (cert-manager).
+ingress:
+  host: airflow-juba.dev.check-consulting.net

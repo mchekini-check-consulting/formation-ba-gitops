@@ -260,6 +260,15 @@ tools:
     syncWave: "30"
     crds: false
     finalizer: false
+  # Orchestrateur personnel (formation), mode standalone (SQLite, pas de
+  # Postgres dedie). Non-production : voir commentaire du chart.
+  airflow:
+    enabled: true
+    version: ""
+    namespace: airflow
+    syncWave: "30"
+    crds: false
+    finalizer: false
   mailpit-auth:
     enabled: true
     version: ""

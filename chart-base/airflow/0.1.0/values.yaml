@@ -1,0 +1,29 @@
+image:
+  repository: apache/airflow
+  tag: ""                           # defaut : appVersion du chart
+  pullPolicy: IfNotPresent
+
+# Mode standalone : webserver + scheduler + triggerer dans un seul processus,
+# base SQLite. Identifiants admin generes au premier demarrage, ecrits dans
+# $AIRFLOW_HOME/standalone_admin_password.txt (sur le volume persistant) et
+# affiches dans les logs du pod :
+#   kubectl -n airflow logs deploy/airflow | grep -A2 "Login with username"
+persistence:
+  size: 2Gi
+  storageClass: ""                  # vide : StorageClass par defaut du cluster
+  keep: true                        # PVC conserve si la release est supprimee
+
+ingress:
+  enabled: false
+  className: ""
+  host: ""
+  annotations: {}
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 1.5Gi
+  limits:
+    memory: 3Gi
+
+extraEnv: []
