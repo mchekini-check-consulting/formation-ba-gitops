@@ -1,0 +1,11 @@
+# Values communes du chart metabase (Metabase BI, chart maison).
+# Pas de SSO (volontaire, projet personnel de formation) : compte admin cree
+# via l'assistant web au premier demarrage, visible uniquement par son createur.
+# Base interne H2 sur le volume persistant (pas de Postgres dedie).
+persistence:
+  size: 2Gi
+  keep: true
+
+ingress:
+  enabled: true
+  className: traefik
