@@ -1,0 +1,29 @@
+image:
+  repository: metabase/metabase
+  tag: ""                           # defaut : appVersion du chart
+  pullPolicy: IfNotPresent
+
+# Base interne H2 embarquee (comptes, dashboards, questions, connexions).
+# Pas d'assistant de configuration automatique : le compte admin se cree via
+# l'assistant web au premier demarrage (pas de variable d'environnement pour ca).
+persistence:
+  size: 2Gi
+  storageClass: ""                  # vide : StorageClass par defaut du cluster
+  keep: true                        # PVC conserve si la release est supprimee
+
+ingress:
+  enabled: false
+  className: ""
+  host: ""
+  annotations: {}
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 1Gi
+  limits:
+    memory: 2Gi
+
+javaToolOptions: "-XX:MaxRAMPercentage=75.0"
+
+extraEnv: []
