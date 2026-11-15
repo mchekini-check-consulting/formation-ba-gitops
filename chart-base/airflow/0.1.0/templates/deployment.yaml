@@ -29,6 +29,17 @@ spec:
             - name: http
               containerPort: 8080
           env:
+            {{- if .Values.fernetKeySecret.name }}
+            # Chiffre les Connections/Variables stockees dans la base interne.
+            # Secret cree a la main (jamais dans Git) :
+            #   kubectl -n airflow create secret generic {{ .Values.fernetKeySecret.name }} \
+            #     --from-literal={{ .Values.fernetKeySecret.key }}=<cle generee avec Fernet.generate_key()>
+            - name: AIRFLOW__CORE__FERNET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.fernetKeySecret.name }}
+                  key: {{ .Values.fernetKeySecret.key }}
+            {{- end }}
             {{- with .Values.extraEnv }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
