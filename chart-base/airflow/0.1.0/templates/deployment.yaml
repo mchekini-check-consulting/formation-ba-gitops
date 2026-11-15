@@ -20,6 +20,18 @@ spec:
       securityContext:
         runAsUser: 50000
         fsGroup: 0
+      # Le pidfile du webserver survit sur le volume persistant apres un arret
+      # brutal (strategie Recreate). Au redemarrage, Airflow le trouve et
+      # croit qu'un webserver tourne deja (un PID du nouveau conteneur
+      # coincide par hasard avec l'ancien), et ne bind jamais vraiment le
+      # port -- blocage silencieux, sans erreur dans les logs.
+      initContainers:
+        - name: cleanup-stale-pidfile
+          image: busybox:1.36
+          command: ["sh", "-c", "rm -f /opt/airflow/airflow-webserver.pid"]
+          volumeMounts:
+            - name: data
+              mountPath: /opt/airflow
       containers:
         - name: airflow
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
