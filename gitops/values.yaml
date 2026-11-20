@@ -251,24 +251,6 @@ tools:
     syncWave: "30"
     crds: false
     finalizer: false
-  # Dashboard BI personnel (formation). Pas de SSO (access non defini), pas de
-  # Postgres dedie (base interne H2 sur volume persistant).
-  metabase:
-    enabled: true
-    version: ""
-    namespace: metabase
-    syncWave: "30"
-    crds: false
-    finalizer: false
-  # Orchestrateur personnel (formation), mode standalone (SQLite, pas de
-  # Postgres dedie). Non-production : voir commentaire du chart.
-  airflow:
-    enabled: true
-    version: ""
-    namespace: airflow
-    syncWave: "30"
-    crds: false
-    finalizer: false
   mailpit-auth:
     enabled: true
     version: ""

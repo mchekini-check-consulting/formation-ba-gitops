@@ -78,7 +78,3 @@ tools:
     version: 0.1.0     # chart maison chart-base/mailpit (Mailpit v1.32.0)
   mailpit-auth:
     version: 0.1.0     # chart mailpit (oauth2-proxy v7.15.5)
-  metabase:
-    version: 0.1.0     # chart maison chart-base/metabase (Metabase v0.55.3)
-  airflow:
-    version: 0.1.0     # chart maison chart-base/airflow (Airflow v2.10.5, mode standalone)

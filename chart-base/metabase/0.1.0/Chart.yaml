@@ -1,9 +1,0 @@
-apiVersion: v2
-name: metabase
-description: >-
-  Metabase (BI / dashboards). Chart maison : pas de chart Helm officiel publié
-  par Metabase. Base interne en H2 embarquee (pas de Postgres dedie), pensee
-  pour un usage de demonstration/formation, pas pour de la production multi-equipe.
-type: application
-version: 0.1.0
-appVersion: "v0.55.3"   # multi-arch (amd64, arm64) verifie ; versions < v0.53 sont amd64-only
