@@ -84,3 +84,5 @@ tools:
     version: 0.1.0     # chart maison chart-base/kafka-cluster
   redpanda-console:
     version: 3.15.0
+  redpanda-console-auth:
+    version: 0.1.0     # chart maison chart-base/redpanda-console-auth

@@ -79,6 +79,14 @@ access:
       roles:
         viewer: {}
 
+    # Redpanda Console (UI Kafka). oauth2-proxy laisse passer les rôles de
+    # oauth2Proxy.oidc.allowedRoles (values/common/redpanda-console-auth.yaml) :
+    #   viewer -> accès à l'UI (topics, messages, consumer groups ; pas de droits plus
+    #   fins sans Redpanda Enterprise RBAC). Sans ce rôle : 403.
+    redpanda-console:
+      roles:
+        viewer: {}
+
   # Groupes Keycloak : rôles par outil. mfa: true : code OTP exigé à chaque connexion
   # (configuration de l'application d'authentification imposée à la première).
   groups:
@@ -90,6 +98,7 @@ access:
         sonarqube: [admin]
         grafana: [admin]
         mailpit: [viewer]
+        redpanda-console: [viewer]
     ba:
       roles:
         kargo: [promoter]
@@ -97,6 +106,7 @@ access:
         sonarqube: [user]
         grafana: [viewer]
         mailpit: [viewer]
+        redpanda-console: [viewer]
     dev-team:
       roles:
         kargo: [viewer]
@@ -104,3 +114,4 @@ access:
         sonarqube: [user]
         grafana: [viewer]
         mailpit: [viewer]
+        redpanda-console: [viewer]

@@ -278,11 +278,23 @@ tools:
     crds: false
   # UI Kafka (Redpanda Console : topics, messages, consumer groups ; compatible
   # protocole Kafka natif, fonctionne avec le cluster Strimzi). Wave 10 : après le cluster.
+  # Pas d'Ingress ici (Redpanda Console Community n'a pas de SSO natif) : seul accès
+  # depuis l'extérieur, via redpanda-console-auth (oauth2-proxy).
   redpanda-console:
     enabled: true
     version: ""
     namespace: kafka
     syncWave: "10"
+    crds: false
+  # oauth2-proxy devant Redpanda Console (chart maison redpanda-console-auth, même
+  # principe que mailpit-auth) : SSO Keycloak (realm platform, client redpanda-console),
+  # droits access.tools.redpanda-console.roles. Wave 40 : après keycloak-config (35),
+  # qui copie le secret du client.
+  redpanda-console-auth:
+    enabled: true
+    version: ""
+    namespace: kafka
+    syncWave: "40"
     crds: false
 
 # Projets métier : SEUL endroit où déclarer les environnements et les projets.

@@ -62,6 +62,20 @@ realms:
         clientSecretCopy:
           namespace: mailpit
           name: mailpit-oauth
+      # Redpanda Console : oauth2-proxy devant l'UI (Application redpanda-console-auth,
+      # même principe que mailpit). Client confidentiel (oauth2-proxy exige un
+      # client_secret), PKCE en plus. Secret copié en kafka/redpanda-console-oauth
+      # (namespace créé par l'Application strimzi-operator, wave 0).
+      # Rôles dans le claim "roles", filtrés par oauth2-proxy (allowedRoles).
+      redpanda-console:
+        name: Redpanda Console
+        host: kafka
+        redirectPaths: [/oauth2/callback]
+        attributes:
+          pkce.code.challenge.method: S256
+        clientSecretCopy:
+          namespace: kafka
+          name: redpanda-console-oauth
       # SonarQube Community : SAML (values/*/sonarqube.yaml). clientId = "Application ID"
       # côté SonarQube. Assertion : login, name, email, groups (rôles renommés en groupes
       # SonarQube : access.tools.sonarqube.roles.<rôle>.group).
