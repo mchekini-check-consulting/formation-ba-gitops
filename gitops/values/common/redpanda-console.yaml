@@ -1,10 +1,8 @@
 # Values communes du chart console (Redpanda Console). Connexion au cluster Kafka
 # (tools.kafka-cluster), namespace kafka : Service ClusterIP <clusterName>-kafka-bootstrap.
+# Pas d'Ingress (défaut du chart) : Console Community n'a pas de SSO natif, seul
+# accès depuis l'extérieur via tools.redpanda-console-auth (oauth2-proxy).
 config:
   kafka:
     brokers:
       - kafka-cluster-kafka-bootstrap.kafka.svc.cluster.local:9092
-
-ingress:
-  enabled: true
-  className: traefik

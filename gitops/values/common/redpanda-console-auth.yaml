@@ -1,0 +1,15 @@
+# oauth2-proxy devant Redpanda Console (Application redpanda-console) : client
+# redpanda-console du realm platform (values/common/keycloak-config.yaml), secret
+# copié en kafka/redpanda-console-oauth par keycloak-config (clientSecretCopy).
+# Droits : access.tools.redpanda-console.roles (values/common/access.yaml).
+oauth2Proxy:
+  enabled: true
+  oidc:
+    clientId: redpanda-console
+    clientSecret:
+      name: redpanda-console-oauth
+      key: client-secret
+    rolesClaim: roles
+    allowedRoles: [viewer]
+  ingress:
+    className: traefik
