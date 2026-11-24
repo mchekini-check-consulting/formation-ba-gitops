@@ -1,0 +1,4 @@
+# Values communes du chart strimzi-kafka-operator.
+# Défauts du chart suffisants : watchNamespaces: [] et watchAnyNamespace: false
+# -> l'opérateur ne surveille que son propre namespace (kafka), où vit aussi le
+# CR Kafka (tools.kafka-cluster). Rien à surcharger ici.

@@ -1,0 +1,3 @@
+# Values communes du chart maison kafka-cluster (CR Kafka + KafkaNodePool).
+# Dimensionnement et config Kafka : défauts du chart (values.yaml du chart) suffisants
+# pour l'environnement de formation. Rien à surcharger ici.

@@ -1,0 +1,24 @@
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaNodePool
+metadata:
+  name: dual-role
+  namespace: {{ .Release.Namespace }}
+  labels:
+    strimzi.io/cluster: {{ .Values.clusterName }}
+spec:
+  replicas: {{ .Values.nodePool.replicas }}
+  roles:
+    - controller
+    - broker
+  storage:
+    type: jbod
+    volumes:
+      - id: 0
+        type: persistent-claim
+        size: {{ .Values.nodePool.storage.size | quote }}
+        deleteClaim: {{ .Values.nodePool.storage.deleteClaim }}
+        {{- with .Values.nodePool.storage.class }}
+        class: {{ . }}
+        {{- end }}
+  resources:
+    {{- toYaml .Values.nodePool.resources | nindent 4 }}

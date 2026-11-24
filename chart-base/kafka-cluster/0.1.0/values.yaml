@@ -1,0 +1,36 @@
+# Cluster Kafka KRaft (pool combiné broker+controller), formation BA.
+# CRDs : crd-base/strimzi-operator/<version> ; CR réconciliées par l'opérateur
+# Strimzi (tools.strimzi-operator), même namespace (kafka).
+
+clusterName: kafka-cluster
+
+nodePool:
+  replicas: 3
+  # Dimensionnement formation (ajustable) : 600Mi RAM/nœud, 2Gi de stockage.
+  resources:
+    requests:
+      memory: 600Mi
+      cpu: 300m
+    limits:
+      memory: 600Mi
+      cpu: 500m
+  storage:
+    size: 2Gi
+    deleteClaim: false
+    class: ""   # classe par défaut du cluster si vide
+
+# Écouteur interne uniquement : Redpanda Console et les projets BA s'y connectent
+# via le Service ClusterIP <clusterName>-kafka-bootstrap.<namespace>.svc.cluster.local:9092
+listenerPort: 9092
+
+# Pas de gestion déclarative des topics ici (pas de KafkaTopic) : chaque projet BA
+# déclare son adresse de bootstrap et ses topics dans son propre helm.yaml
+# (applications[].envList). auto.create.topics.enable permet à l'application de
+# créer le topic au premier produce/consume, sans CLI ni CR dédiée.
+config:
+  auto.create.topics.enable: true
+  offsets.topic.replication.factor: 3
+  transaction.state.log.replication.factor: 3
+  transaction.state.log.min.isr: 2
+  default.replication.factor: 3
+  min.insync.replicas: 2

@@ -1,0 +1,8 @@
+# Ingress servi par Traefik ; external-dns crée l'ALIAS kafka.dev.check-consulting.net -> NLB.
+# HTTPS : wildcard *.dev.check-consulting.net, certificat par défaut de Traefik (cert-manager).
+ingress:
+  hosts:
+    - host: kafka.dev.check-consulting.net
+      paths:
+        - path: /
+          pathType: Prefix
