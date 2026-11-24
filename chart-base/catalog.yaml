@@ -100,3 +100,7 @@ tools:
   # kafka-cluster : chart maison écrit directement dans chart-base/kafka-cluster/<version>
   # (CR Kafka + KafkaNodePool, instances des CRDs de strimzi-operator) ; nouvelle
   # version = nouveau dossier.
+
+  # redpanda-console-auth : chart maison écrit directement dans
+  # chart-base/redpanda-console-auth/<version> (oauth2-proxy devant Redpanda Console,
+  # même principe que chart-base/mailpit) ; nouvelle version = nouveau dossier.

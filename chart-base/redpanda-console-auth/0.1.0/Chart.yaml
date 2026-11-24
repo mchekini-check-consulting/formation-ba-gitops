@@ -1,0 +1,9 @@
+apiVersion: v2
+name: redpanda-console-auth
+description: >-
+  oauth2-proxy devant Redpanda Console (SSO Keycloak, realm platform). Seul
+  accès à l'UI depuis l'extérieur : Redpanda Console (Application
+  redpanda-console) reste sans Ingress. Chart maison, même principe que
+  chart-base/mailpit (partie oauth2Proxy).
+type: application
+version: 0.1.0

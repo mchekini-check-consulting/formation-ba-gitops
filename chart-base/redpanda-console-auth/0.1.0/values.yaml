@@ -1,0 +1,38 @@
+oauth2Proxy:
+  enabled: false
+  image:
+    repository: quay.io/oauth2-proxy/oauth2-proxy
+    tag: v7.15.5
+    pullPolicy: IfNotPresent
+  # Service de Redpanda Console (Application redpanda-console, chart officiel
+  # console) : <releaseName>-console, jamais exposé directement
+  upstream: http://redpanda-console-console:8080
+  oidc:
+    issuerUrl: ""                   # https://keycloak.<env>.<domaine>/realms/platform
+    clientId: redpanda-console
+    # Secret du client, copié depuis keycloak par keycloak-config (clientSecretCopy)
+    clientSecret:
+      name: redpanda-console-oauth
+      key: client-secret
+    # Claim des rôles du client (mapper client-roles de keycloak-config)
+    rolesClaim: roles
+    # Rôles autorisés (access.tools.redpanda-console.roles) ; sans l'un d'eux : 403
+    allowedRoles: [viewer]
+  # Secret de chiffrement du cookie de session (32 caractères). Job PreSync qui le crée
+  # s'il n'existe pas (un Secret existant n'est jamais modifié), jamais dans Git.
+  cookieSecret:
+    name: redpanda-console-oauth2-cookie
+    key: cookie-secret
+    generate:
+      enabled: true
+      image: alpine/k8s:1.31.13     # kubectl + sh, multi-arch (amd64, arm64)
+  ingress:
+    className: ""
+    host: ""
+    annotations: {}
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      memory: 128Mi
