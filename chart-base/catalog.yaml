@@ -85,3 +85,18 @@ tools:
   kargo:
     repo: oci://ghcr.io/akuity/kargo-charts
     chart: kargo
+
+  # Opérateur Kafka (CRDs Kafka/KafkaNodePool/KafkaTopic/KafkaUser, cluster KRaft).
+  strimzi-operator:
+    repo: https://strimzi.io/charts/
+    chart: strimzi-kafka-operator
+
+  # UI Kafka (topics, messages, consumer groups) : compatible avec le protocole
+  # Kafka natif, fonctionne avec le cluster Strimzi sans dépendre de Redpanda.
+  redpanda-console:
+    repo: https://charts.redpanda.com
+    chart: console
+
+  # kafka-cluster : chart maison écrit directement dans chart-base/kafka-cluster/<version>
+  # (CR Kafka + KafkaNodePool, instances des CRDs de strimzi-operator) ; nouvelle
+  # version = nouveau dossier.

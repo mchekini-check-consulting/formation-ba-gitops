@@ -1,0 +1,10 @@
+# Values communes du chart console (Redpanda Console). Connexion au cluster Kafka
+# (tools.kafka-cluster), namespace kafka : Service ClusterIP <clusterName>-kafka-bootstrap.
+config:
+  kafka:
+    brokers:
+      - kafka-cluster-kafka-bootstrap.kafka.svc.cluster.local:9092
+
+ingress:
+  enabled: true
+  className: traefik

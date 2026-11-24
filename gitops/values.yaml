@@ -258,6 +258,32 @@ tools:
     namespace: mailpit
     syncWave: "40"
     crds: false
+  # Opérateur Kafka (CRDs Kafka/KafkaNodePool/KafkaTopic/KafkaUser). Wave 0 : aucune
+  # dépendance ; watch uniquement son propre namespace (kafka, watchNamespaces par défaut).
+  strimzi-operator:
+    enabled: true
+    version: ""
+    namespace: kafka
+    syncWave: "0"
+  # Cluster Kafka KRaft (CR Kafka + KafkaNodePool, chart maison chart-base/kafka-cluster) :
+  # instances des CRDs de strimzi-operator, pas de nouvelles CRDs (crds: false).
+  # Wave 5 : après l'opérateur. Bootstrap exposé aux projets via leur propre helm.yaml
+  # (applications[].envList KAFKA_BOOTSTRAP_SERVERS=kafka-cluster-kafka-bootstrap.kafka.svc.cluster.local:9092) ;
+  # topics déclarés côté projet (auto.create.topics.enable), pas de KafkaTopic ici.
+  kafka-cluster:
+    enabled: true
+    version: ""
+    namespace: kafka
+    syncWave: "5"
+    crds: false
+  # UI Kafka (Redpanda Console : topics, messages, consumer groups ; compatible
+  # protocole Kafka natif, fonctionne avec le cluster Strimzi). Wave 10 : après le cluster.
+  redpanda-console:
+    enabled: true
+    version: ""
+    namespace: kafka
+    syncWave: "10"
+    crds: false
 
 # Projets métier : SEUL endroit où déclarer les environnements et les projets.
 # Un commit suffit. En découlent (templates/business/, après les outils) :
